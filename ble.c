@@ -5,6 +5,8 @@
  \date 20191009
 *******************************************************************************/
 #include "ble.h"
+#include <stdlib.h>
+#include <string.h>
 
 const attWriteReq_packet attWriteReq_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type
@@ -52,6 +54,14 @@ const gapTerminateLinkRequest_packet gapTerminateLinkRequest_packet_default={
     GAP_TERMINATELINKREQUEST, //uint16 opCode
     0x03, //uint8 dataLength
     0x0000, //uint16 connHandle
+    0x13 //uint8 discReason
+};
+
+const gapTerminateLinkRequest_packet gapTerminateLinkRequest_packet_init={
+    HCI_PACKETTYPE_COMMAND, //uint8 type
+    GAP_TERMINATELINKREQUEST, //uint16 opCode
+    0x03, //uint8 dataLength
+    HCI_CONNECTIONHANDLE_INIT, //uint16 connHandle
     0x13 //uint8 discReason
 };
 
@@ -134,3 +144,41 @@ const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default={
     {0x02,0x0a,0x51,0x08,0x07,0x04,0xca,0xfe,0xba,0xbe,0xb7,0x00} //uint8 value[8];
 };
 
+//TODO unsigned long does not make sense when 0xFF*0xFF ~ unsigned short
+unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsLen) {
+    unsigned long i;
+    unsigned char * hciPcktsDetected[HCI_PACKETS_MAX];
+    unsigned char hciPcktsLen=0;
+    hciEvent_packetHeader * tempHciEventHeader;
+
+    if (bufferLen < HCI_PACKET_MINSIZE) {
+        *hciPackets=0;
+        *hciPacketsLen=0;
+        return (0);
+    }
+    for (i=0;i<bufferLen;i++) {
+        switch (buffer[i]) {
+            case HCI_PACKETTYPE_EVENT:
+                if (i+sizeof(hciEvent_packetHeader) <= bufferLen) {
+                    //printf("-->&buffer[i]=%p<--",&buffer[i]);
+                    hciPcktsDetected[hciPcktsLen]=&buffer[i];
+                    hciPcktsLen++;
+                    tempHciEventHeader=(hciEvent_packetHeader *) &buffer[i];
+                    i+=sizeof(hciEvent_packetHeader)-1+tempHciEventHeader->dataLength;
+                    //i+=sizeof(hciEvent_packetHeader)-1+buffer[i+2];
+                }
+                else continue;
+                break;
+
+            default:
+                //UNKNOWN packet type
+                *hciPackets=0;
+                *hciPacketsLen=0;
+                return (0);
+        }
+    }
+    //for (i=0;i!=hciPcktsLen;i++) printf("-->hciPcktsDetected[i]=%p<--",hciPcktsDetected[i]);
+    *hciPackets=memcpy(malloc(sizeof(unsigned char *)*hciPcktsLen),hciPcktsDetected,hciPcktsLen);
+    *hciPacketsLen=hciPcktsLen;
+    return (hciPcktsLen);
+}

@@ -15,12 +15,15 @@ extern "C"
 //no struct padding
 #pragma pack(1)
 
-#define HCI_SUCCESS 0x00
-
+#define HCI_CONNECTIONHANDLE_INIT 0xFFFE
+#define HCI_PACKETS_MAX 0xFF
 #define HCI_PACKETTYPE_COMMAND 0x01
 #define HCI_PACKETTYPE_EVENT 0x04
-
-#define HCI_PACKET_COMMAND_MAXSIZE 0xFF
+#define HCI_PACKET_MINSIZE 0x03
+#define HCI_PACKET_MAXSIZE 0xFF
+#define HCI_PACKET_COMMAND_MINSIZE 0x04
+#define HCI_PACKET_EVENT_MINSIZE 0x03
+#define HCI_SUCCESS 0x00
 
 #define BD_ADDR_LEN 0x06
 #define BD_RESOLVEKEY_LEN 0x10
@@ -71,13 +74,12 @@ typedef struct {
     void * parameters;
 } hciCommand_packet;
 
-/*
+
 typedef struct {
+    uint8 packetType;
     uint8 eventCode;
-    uint8 parameterLength;
-    void * parameters;
-} hciEvent_packet;
-*/
+    uint8 dataLength;
+} hciEvent_packetHeader;
 
 typedef struct {
     uint8 eventCode;
@@ -139,6 +141,7 @@ typedef struct {
     uint8 discReason;
 } gapTerminateLinkRequest_packet;
 extern const gapTerminateLinkRequest_packet gapTerminateLinkRequest_packet_default;
+extern const gapTerminateLinkRequest_packet gapTerminateLinkRequest_packet_init;
 
 typedef struct {
     uint8 type;
@@ -192,8 +195,12 @@ typedef struct {
 } gattWriteNoRsp_TE12_packet;
 extern const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default;
 
+
 #ifdef __cplusplus
 }
 #endif
+
+extern unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsLen);
+
 
 #endif // BLE_H

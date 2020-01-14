@@ -1,0 +1,28 @@
+/*******************************************************************************
+TE_SPIDER_TIBLE_TOOL
+--------------------
+
+CHANGELOG:
+----------
+beta 03: SARA 20191030
+- output revised <Tx> + <Rx>
+- MAC back conversion to string
+- standardized, friendlier output
+- added --help --version
+
+beta 02 : SARA 20191021
+- stdout debug out
+- stderr errors
+- check connection establishment
+
+beta 01 : SARA 20191018
+- first automatic version
+- inputs COM_PORT BLE_MAC_ADRESS COMMANDS...
+- only Tx commands
+- no Rx handling
+
+TODO:
+-----
+- uni Rx handling
+- interrupts instead of predicted response? Needed to production?
+*******************************************************************************/

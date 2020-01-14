@@ -1,7 +1,8 @@
 # depslib dependency file v1.0
-1571319404 source:c:\_mina\codeblocks_projects\ble_ti_com\main.c
+1572443195 source:c:\_mina\codeblocks_projects\ble_ti_com\main.c
 	<stdio.h>
 	<stdlib.h>
+	<stddef.h>
 	<ctype.h>
 	<string.h>
 	<windows.h>
@@ -39,14 +40,16 @@
 	"bcomdef.h"
 	"OSAL.h"
 
-1571315037 source:c:\_mina\codeblocks_projects\ble_ti_com\ble.c
+1571728425 source:c:\_mina\codeblocks_projects\ble_ti_com\ble.c
 	"ble.h"
+	<stdlib.h>
+	<string.h>
 
-1571307607 c:\_mina\codeblocks_projects\ble_ti_com\ble.h
+1571728430 c:\_mina\codeblocks_projects\ble_ti_com\ble.h
 
-1571223129 source:c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.c
+1571219529 source:c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.c
 	"ble_gap_events.h"
 
-1571138141 c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.h
+1571134541 c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.h
 	"ble.h"
 
