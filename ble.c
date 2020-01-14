@@ -6,6 +6,8 @@
 *******************************************************************************/
 #include "ble.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 
 const attWriteReq_packet attWriteReq_packet_default={
@@ -145,15 +147,16 @@ const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default={
 };
 
 //TODO unsigned long does not make sense when 0xFF*0xFF ~ unsigned short
-unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsLen) {
+unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsNum) {
     unsigned long i;
     unsigned char * hciPcktsDetected[HCI_PACKETS_MAX];
-    unsigned char hciPcktsLen=0;
-    hciEvent_packetHeader * tempHciEventHeader;
+    unsigned char hciPcktsNum=0;
+    hciEvent_packetHeader * hciEventHeader;
+    hciCommand_packetHeader * hciCommandHeader;
 
     if (bufferLen < HCI_PACKET_MINSIZE) {
-        *hciPackets=0;
-        *hciPacketsLen=0;
+        *hciPackets=NULL;
+        *hciPacketsNum=0;
         return (0);
     }
     for (i=0;i<bufferLen;i++) {
@@ -161,24 +164,89 @@ unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, un
             case HCI_PACKETTYPE_EVENT:
                 if (i+sizeof(hciEvent_packetHeader) <= bufferLen) {
                     //printf("-->&buffer[i]=%p<--",&buffer[i]);
-                    hciPcktsDetected[hciPcktsLen]=&buffer[i];
-                    hciPcktsLen++;
-                    tempHciEventHeader=(hciEvent_packetHeader *) &buffer[i];
-                    i+=sizeof(hciEvent_packetHeader)-1+tempHciEventHeader->dataLength;
-                    //i+=sizeof(hciEvent_packetHeader)-1+buffer[i+2];
+                    hciPcktsDetected[hciPcktsNum]=&buffer[i];
+                    hciPcktsNum++;
+                    hciEventHeader=(hciEvent_packetHeader *) &buffer[i];
+                    i+=sizeof(hciEvent_packetHeader)-1+hciEventHeader->dataLength;
+                }
+                else continue;
+                break;
+
+            case HCI_PACKETTYPE_COMMAND:
+                if (i+sizeof(hciCommand_packetHeader) <= bufferLen) {
+                    //printf("-->&buffer[i]=%p<--",&buffer[i]);
+                    hciPcktsDetected[hciPcktsNum]=&buffer[i];
+                    hciPcktsNum++;
+                    hciCommandHeader=(hciCommand_packetHeader *) &buffer[i];
+                    i+=sizeof(hciCommand_packetHeader)-1+hciCommandHeader->dataLength;
                 }
                 else continue;
                 break;
 
             default:
                 //UNKNOWN packet type
-                *hciPackets=0;
-                *hciPacketsLen=0;
+                *hciPackets=NULL;
+                *hciPacketsNum=0;
                 return (0);
         }
     }
-    //for (i=0;i!=hciPcktsLen;i++) printf("-->hciPcktsDetected[i]=%p<--",hciPcktsDetected[i]);
-    *hciPackets=memcpy(malloc(sizeof(unsigned char *)*hciPcktsLen),hciPcktsDetected,hciPcktsLen);
-    *hciPacketsLen=hciPcktsLen;
-    return (hciPcktsLen);
+    //realloc behaves undefined for uninitialized pointer
+    //if (*hciPackets!=NULL) { free(*hciPackets); *hciPackets=NULL; }
+    *hciPackets=memcpy(malloc(sizeof(**hciPackets)*hciPcktsNum),hciPcktsDetected,sizeof(*hciPcktsDetected)*hciPcktsNum);
+    *hciPacketsNum=hciPcktsNum;
+    return (hciPcktsNum);
+}
+
+void printHciPackets(unsigned char * ptrStream, unsigned long sizeofStream) {
+    unsigned char i;
+    unsigned char j;
+    unsigned char ** readHciPackets=NULL;
+    unsigned char readHciPacketsLen;
+    hci_packetHeader * currentPacketHeader;
+    unsigned char currentPacketLen;
+
+    bufhcitokenize(ptrStream, sizeofStream, &readHciPackets, &readHciPacketsLen);
+    for (j=0;j!=readHciPacketsLen;j++) {
+        if (j+1!=readHciPacketsLen) currentPacketLen=readHciPackets[j+1]-readHciPackets[j];
+        else currentPacketLen=readHciPackets[0]+sizeofStream-readHciPackets[j];
+        currentPacketHeader=(hci_packetHeader *) readHciPackets[j];
+        switch (currentPacketHeader->packetType) {
+        case HCI_PACKETTYPE_EVENT :
+            printf("--> HCI EVENT packet size: %hu\n",currentPacketLen);
+            for (i=0;i!=currentPacketLen;i++) {
+                printf("%02X",readHciPackets[j][i]);
+                if (i==0 || i==1 || i==2 || i==4 || i==5) printf("|");
+                else printf(" ");
+                if ((i+1)%0x10==0) printf("\n");
+            }
+            printf("\n");
+            for (i=0;i!=currentPacketLen;i++) {
+                if (isprint(readHciPackets[j][i])) printf("%c",readHciPackets[j][i]);
+                else if (isspace(readHciPackets[j][i])) printf(" ");
+                else printf(".");
+            }
+            printf("\n");
+            break;
+        case HCI_PACKETTYPE_COMMAND :
+            printf("--> HCI COMMAND packet size: %hu\n",currentPacketLen);
+            for (i=0;i!=currentPacketLen;i++) {
+                printf("%02X",readHciPackets[j][i]);
+                if (i==0 || i==2 || i==3) printf("|");
+                else printf(" ");
+                if ((i+1)%0x10==0) printf("\n");
+            }
+            printf("\n");
+            for (i=0;i!=currentPacketLen;i++) {
+                if (isprint(readHciPackets[j][i])) printf("%c",readHciPackets[j][i]);
+                else if (isspace(readHciPackets[j][i])) printf(" ");
+                else printf(".");
+            }
+            printf("\n");
+            break;
+        default :
+            //UNKNOWN packet type
+            break;
+        }
+    }
+    free(readHciPackets);
 }

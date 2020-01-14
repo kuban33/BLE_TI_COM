@@ -4,7 +4,12 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
-beta 03: SARA 20191030
+beta 04 : SARA 20200113
+- delay TE commands raised 100 -> 200 ms
+- bufhcitokenize implemented both EVENT and COMMAND packets
+- makefile added
+
+beta 03 : SARA 20191030
 - output revised <Tx> + <Rx>
 - MAC back conversion to string
 - standardized, friendlier output
@@ -25,4 +30,6 @@ TODO:
 -----
 - uni Rx handling
 - interrupts instead of predicted response? Needed to production?
+- check TE commands correctness
+- dll for LabView
 *******************************************************************************/

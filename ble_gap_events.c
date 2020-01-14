@@ -23,11 +23,3 @@ const const gapHciExtentionCommandStatus_t gapHciExtentionCommandStatus_default=
     0x00, //uint8 dataLength;
     0 //uint8 * paramValue;
 };
-
-uint16 getEvent(hciEvent_packet * evntpckt) {
-    return evntpckt->event;
-}
-uint8 getEventStatus(hciEvent_packet * evntpckt) {
-    return evntpckt->status;
-}
-

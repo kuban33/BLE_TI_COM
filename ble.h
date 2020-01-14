@@ -55,6 +55,10 @@ typedef struct {
     void * packet;
 } hci_packet;
 
+typedef struct {
+    uint8 packetType;
+} hci_packetHeader;
+
 typedef union {
     uint16 opCode;
     struct {
@@ -70,23 +74,27 @@ typedef union {
 
 typedef struct {
     hciOpCode_t opCode;
-    uint8 parameterLength;
-    void * parameters;
+    uint8 dataLength;
+    //uint8 data0;
 } hciCommand_packet;
 
+typedef struct {
+    uint8 packetType;
+    hciOpCode_t opCode;
+    uint8 dataLength;
+} hciCommand_packetHeader;
+
+typedef struct {
+    uint8 eventCode;
+    uint8 dataLength;
+    //uint8 data0;
+} hciEvent_packet;
 
 typedef struct {
     uint8 packetType;
     uint8 eventCode;
     uint8 dataLength;
 } hciEvent_packetHeader;
-
-typedef struct {
-    uint8 eventCode;
-    uint8 dataLength;
-    uint16 event;
-    uint8 status;
-} hciEvent_packet;
 
 typedef struct {
     uint8 type;
@@ -201,6 +209,6 @@ extern const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default;
 #endif
 
 extern unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsLen);
-
+void printHciPackets(unsigned char * ptrStream, unsigned long sizeofStream);
 
 #endif // BLE_H
