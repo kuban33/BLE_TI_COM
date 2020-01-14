@@ -132,6 +132,7 @@ void printHelp(char *arg0) {
     printf("   LEFT - Enables only left speakers\n");
     printf("   RIGHT - Enables only right speakers\n");
     printf("   BOTH - Enables both left and right speakers\n");
+    printf("   RESET - Out of factory mode, included (VOLMAX + BOTH)\n");
     printf("Examples:\n");
     printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX LEFT\n\n",arg0);
     printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX BOTH\n\n",arg0);
@@ -221,6 +222,7 @@ int main(int argc, char **argv) {
     printf("   LEFT - Enables only left speakers\n");
     printf("   RIGHT - Enables only right speakers\n");
     printf("   BOTH - Enables both left and right speakers\n");
+    printf("   RESET - Out of factory mode, included (VOLMAX + BOTH)\n");
     */
     for (i=3;i!=argc;i++) {
         printf("%s\n",argv[i]);
@@ -228,14 +230,19 @@ int main(int argc, char **argv) {
         if (strcmp(argv[i],"LEFT")==0) writeUartHciPacket(serialHandle, &pckTELEFTENA, sizeof(pckTELEFTENA));
         if (strcmp(argv[i],"RIGHT")==0) writeUartHciPacket(serialHandle, &pckTERIGHTENA, sizeof(pckTERIGHTENA));
         if (strcmp(argv[i],"BOTH")==0) writeUartHciPacket(serialHandle, &pckTEBOTHENA, sizeof(pckTEBOTHENA));
+        if (strcmp(argv[i],"RESET")==0) {
+            writeUartHciPacket(serialHandle, &pckTEVOLMAX, sizeof(pckTEVOLMAX));
+            Sleep(DELAY_TE_COMMAND);
+            readUartHciPacketStdOut(serialHandle);
+            writeUartHciPacket(serialHandle, &pckTEBOTHENA, sizeof(pckTEBOTHENA));
+            Sleep(DELAY_TE_COMMAND);
+            readUartHciPacketStdOut(serialHandle);
+            //FACTRORY MODE DISABLE
+            writeUartHciPacket(serialHandle, &pckTEFACDIS, sizeof(pckTEFACDIS));
+        }
         Sleep(DELAY_TE_COMMAND);
         readUartHciPacketStdOut(serialHandle);
     }
-
-    //FACTRORY MODE DISABLE
-    writeUartHciPacket(serialHandle, &pckTEFACDIS, sizeof(pckTEFACDIS));
-    Sleep(DELAY_TE_COMMAND);
-    readUartHciPacketStdOut(serialHandle);
 
     //TERMINATE CONNECTION
     writeUartHciPacket(serialHandle, &pckTerminate, sizeof(pckTerminate));
