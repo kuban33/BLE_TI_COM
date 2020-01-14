@@ -1,0 +1,52 @@
+# depslib dependency file v1.0
+1571319404 source:c:\_mina\codeblocks_projects\ble_ti_com\main.c
+	<stdio.h>
+	<stdlib.h>
+	<ctype.h>
+	<string.h>
+	<windows.h>
+	"ble.h"
+
+1555574010 c:\_mina\codeblocks_projects\ble_ti_com\include\gap.h
+	"bcomdef.h"
+	"OSAL.h"
+	"sm.h"
+
+1555574010 c:\_mina\codeblocks_projects\ble_ti_com\include\bcomdef.h
+	"comdef.h"
+
+1570536642 c:\_mina\codeblocks_projects\ble_ti_com\include\comdef.h
+	"hal_types.h"
+	"hal_defs.h"
+
+1555574010 c:\_mina\codeblocks_projects\ble_ti_com\include\hal_types.h
+
+1555574010 c:\_mina\codeblocks_projects\ble_ti_com\include\hal_defs.h
+
+1570536592 c:\_mina\codeblocks_projects\ble_ti_com\include\osal.h
+	<limits.h>
+	"comdef.h"
+	"OSAL_Memory.h"
+	"OSAL_Timers.h"
+	<ICall.h>
+
+1555574012 c:\_mina\codeblocks_projects\ble_ti_com\include\osal_memory.h
+	"comdef.h"
+
+1555574012 c:\_mina\codeblocks_projects\ble_ti_com\include\osal_timers.h
+
+1555574010 c:\_mina\codeblocks_projects\ble_ti_com\include\sm.h
+	"bcomdef.h"
+	"OSAL.h"
+
+1571315037 source:c:\_mina\codeblocks_projects\ble_ti_com\ble.c
+	"ble.h"
+
+1571307607 c:\_mina\codeblocks_projects\ble_ti_com\ble.h
+
+1571223129 source:c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.c
+	"ble_gap_events.h"
+
+1571138141 c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.h
+	"ble.h"
+
