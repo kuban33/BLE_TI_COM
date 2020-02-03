@@ -6,14 +6,14 @@
 #include <windows.h>
 #include "ble.h"
 
-#define VERSION "beta4"
+#define VERSION "beta5"
 
 #define RX_BUFFER_MAX 0xFF
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
 //AGRESSIVE
-#define DELAY_COMMAND 100
-#define DELAY_TE_COMMAND 200
+#define DELAY_COMMAND 250
+#define DELAY_TE_COMMAND 500
 //#define DELAY_COMMAND 500
 //#define DELAY_TE_COMMAND 1000
 #define MAC_STR_WDELIM (BD_ADDR_LEN*2)+(BD_ADDR_LEN-1)
@@ -190,6 +190,8 @@ void printHelp(char *arg0) {
     printf("   RIGHT - Enables only right speakers\n");
     printf("   BOTH - Enables both left and right speakers\n");
     printf("   RESET - Out of factory mode, included (VOLMAX + BOTH)\n");
+    printf("   CHARGE - Enables charging mode\n");
+    printf("   CHARGEX - Disables charging mode\n");
     printf("Examples:\n");
     printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX LEFT\n",arg0);
     printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX BOTH\n",arg0);
@@ -220,6 +222,9 @@ int main_PROD(int argc, char **argv) {
     gattWriteNoRsp_TE9_packet pckTERIGHTENA=gattWriteNoRsp_TERIGHTENA_packet_default;
     gattWriteNoRsp_TE9_packet pckTEBOTHENA=gattWriteNoRsp_TEBOTHENA_packet_default;
     gattWriteNoRsp_TE8_packet pckTEFACDIS=gattWriteNoRsp_TEFACDIS_packet_default;
+    gattWriteNoRsp_TE9_packet pckTECHARGENA=gattWriteNoRsp_TECHARGENA_packet_default;
+    gattWriteNoRsp_TE9_packet pckTECHARGDIS=gattWriteNoRsp_TECHARGDIS_packet_default;
+
     gapTerminateLinkRequest_packet pckTerminate=gapTerminateLinkRequest_packet_default;
     gapTerminateLinkRequest_packet pckTerminateInit=gapTerminateLinkRequest_packet_init;
 
@@ -381,6 +386,22 @@ int main_PROD(int argc, char **argv) {
             //FACTRORY MODE DISABLE
             printHciPackets((unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS));
             writeUartHciPacket(serialHandle, &pckTEFACDIS, sizeof(pckTEFACDIS));
+            Sleep(DELAY_TE_COMMAND);
+            readUartHciPacket(serialHandle,&buffer,&bufferLen);
+            printHciPackets(buffer,bufferLen);
+            continue;
+        }
+        if (strcmp(argv[i],"CHARGE")==0) {
+            printHciPackets((unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA));
+            writeUartHciPacket(serialHandle, &pckTECHARGENA, sizeof(pckTECHARGENA));
+            Sleep(DELAY_TE_COMMAND);
+            readUartHciPacket(serialHandle,&buffer,&bufferLen);
+            printHciPackets(buffer,bufferLen);
+            continue;
+        }
+        if (strcmp(argv[i],"CHARGEX")==0) {
+            printHciPackets((unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS));
+            writeUartHciPacket(serialHandle, &pckTECHARGDIS, sizeof(pckTECHARGDIS));
             Sleep(DELAY_TE_COMMAND);
             readUartHciPacket(serialHandle,&buffer,&bufferLen);
             printHciPackets(buffer,bufferLen);

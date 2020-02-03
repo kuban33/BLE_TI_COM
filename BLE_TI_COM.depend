@@ -55,3 +55,27 @@
 1571134541 c:\_mina\codeblocks_projects\ble_ti_com\ble_gap_events.h
 	"ble.h"
 
+1578998200 source:c:\_c_projects\ble_ti_com\ble_gap_events.c
+	"ble_gap_events.h"
+
+1578989070 c:\_c_projects\ble_ti_com\ble_gap_events.h
+	"ble.h"
+
+1579086028 c:\_c_projects\ble_ti_com\ble.h
+
+1579085716 source:c:\_c_projects\ble_ti_com\ble.c
+	"ble.h"
+	<stdlib.h>
+	<stdio.h>
+	<ctype.h>
+	<string.h>
+
+1579085740 source:c:\_c_projects\ble_ti_com\main.c
+	<stdio.h>
+	<stdlib.h>
+	<stddef.h>
+	<ctype.h>
+	<string.h>
+	<windows.h>
+	"ble.h"
+

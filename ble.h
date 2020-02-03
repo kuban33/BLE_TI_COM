@@ -192,6 +192,8 @@ extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEVOLMAX_packet_default;
 extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TELEFTENA_packet_default;
 extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TERIGHTENA_packet_default;
 extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEBOTHENA_packet_default;
+extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGENA_packet_default;
+extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGDIS_packet_default;
 
 typedef struct {
     uint8 type;
