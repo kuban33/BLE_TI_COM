@@ -6,7 +6,7 @@
 #include <windows.h>
 #include "ble.h"
 
-#define VERSION "beta5"
+#define VERSION "beta6"
 
 #define RX_BUFFER_MAX 0xFF
 #define STR_LEN_MAX 0xFF
@@ -168,6 +168,26 @@ unsigned char convMacAddr(unsigned char * macAddr, unsigned char macAddrLen, con
     return (iStr-macStr);
 }
 
+unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+    unsigned char * statuses;
+    unsigned char statusesNum;
+    unsigned char overallStatus;
+
+    printHciPackets(packet,packetLength);
+    writeUartHciPacket(serialHandle,packet,packetLength);
+    Sleep(DELAY_TE_COMMAND);
+    readUartHciPacket(serialHandle,&buffer,&bufferLen);
+    printHciPackets(buffer,bufferLen);
+    overallStatus=checkHciEventPacketsStatuses(buffer,bufferLen,&statuses,&statusesNum);
+
+    free(buffer);
+    free(statuses);
+
+    return (overallStatus);
+}
+
 void printVersion(char *arg0) {
     printf("%s: Version=%s\n",arg0,VERSION);
 }
@@ -185,17 +205,24 @@ void printHelp(char *arg0) {
     printf("   %s --help\n",arg0);
     printf("   %s --version\n",arg0);
     printf("Commands:\n");
-    printf("   VOLMAX - sets volume to 100%%\n");
-    printf("   LEFT - Enables only left speakers\n");
-    printf("   RIGHT - Enables only right speakers\n");
-    printf("   BOTH - Enables both left and right speakers\n");
-    printf("   RESET - Out of factory mode, included (VOLMAX + BOTH)\n");
-    printf("   CHARGE - Enables charging mode\n");
+    printf("   FACTORYENABLE - puts spider into factory mode\n");
+    printf("   FACTORYDISABLE - puts spider out of factory mode\n");
+    printf("   PING - pings spider and confirms response\n");
+    printf("   VOLMAX (*) - sets volume to 100%%\n");
+    printf("   LEFT (*) - Enables only left speakers\n");
+    printf("   RIGHT (*) - Enables only right speakers\n");
+    printf("   BOTH (*) - Enables both left and right speakers\n");
+    printf("   CHARGE (*) - Enables charging mode\n");
     printf("   CHARGEX - Disables charging mode\n");
+    printf("   RESET - included (FACTORYENABLE,VOLMAX,BOTH,CHARGEX,FACTORYDISABLE)\n");
+    printf("Notes:\n");
+    printf("   Commands marked with (*) requires factory mode enabled - FACTORYENABLE\n");
     printf("Examples:\n");
-    printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX LEFT\n",arg0);
-    printf("   %s COM10 E2:17:4D:B8:E0:EE VOLMAX BOTH\n",arg0);
-    printf("   %s COM8 \"F9 98 16 F4 02 24\" VOLMAX\n",arg0);
+    printf("   %s COM10 E2:17:4D:B8:E0:EE FACTORYENABLE VOLMAX LEFT\n",arg0);
+    printf("   %s COM10 E2:17:4D:B8:E0:EE BOTH\n",arg0);
+    printf("   %s COM10 E2:17:4D:B8:E0:EE FACTORYDISABLE\n",arg0);
+    printf("   %s COM8 \"F9 98 16 F4 02 24\" FACTORYENABLE VOLMAX\n",arg0);
+    printf("   %s COM8 \"F9 98 16 F4 02 24\" RESET\n",arg0);
     printf("\n");
 }
 
@@ -210,12 +237,15 @@ int main_PROD(int argc, char **argv) {
     HANDLE serialHandle;
     unsigned char * buffer;
     unsigned long bufferLen;
+    unsigned char teCmdProcessed=0;
+    unsigned char teCmdStatus;
 
     gapDeviceInit_packet pckDevInit=gapDeviceInit_packet_default;
     //why multi init
     gapGetParam_packet pckGetParam[4]={gapGetParam_packet_default,gapGetParam_packet_default,gapGetParam_packet_default,gapGetParam_packet_default};
     gapEstablishLinkRequest_packet pckEstablish=gapEstablishLinkRequest_packet_default;
     attWriteReq_packet pckCharConf=attWriteReq_packet_default;
+    gattWriteNoRsp_TE8_packet pckTEPING=gattWriteNoRsp_TEPING_packet_default;
     gattWriteNoRsp_TE12_packet pckTEFACENA=gattWriteNoRsp_TEFACENA_packet_default;
     gattWriteNoRsp_TE9_packet pckTEVOLMAX=gattWriteNoRsp_TEVOLMAX_packet_default;
     gattWriteNoRsp_TE9_packet pckTELEFTENA=gattWriteNoRsp_TELEFTENA_packet_default;
@@ -324,13 +354,16 @@ int main_PROD(int argc, char **argv) {
     writeUartHciPacket(serialHandle, &pckCharConf, sizeof(pckCharConf));
     readUartHciPacket(serialHandle,&buffer,&bufferLen);
     printHciPackets(buffer,bufferLen);
+
     //FACTORY MODE ENABLE
+    /*
     printf("TE command=FACTORYENABLE\n");
     printHciPackets((unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA));
     writeUartHciPacket(serialHandle, &pckTEFACENA, sizeof(pckTEFACENA));
     Sleep(DELAY_TE_COMMAND);
     readUartHciPacket(serialHandle,&buffer,&bufferLen);
     printHciPackets(buffer,bufferLen);
+    */
 
     /*
     printf("   VOLMAX - sets volume to 100%\n");
@@ -341,71 +374,67 @@ int main_PROD(int argc, char **argv) {
     */
     for (i=3;i!=argc;i++) {
         printf("TE command=%s\n",argv[i]);
-        if (strcmp(argv[i],"VOLMAX")==0) {
-            printHciPackets((unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX));
-            writeUartHciPacket(serialHandle, &pckTEVOLMAX, sizeof(pckTEVOLMAX));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        if (strcmp(argv[i],"FACTORYENABLE")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"LEFT")==0) {
-            printHciPackets((unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA));
-            writeUartHciPacket(serialHandle, &pckTELEFTENA, sizeof(pckTELEFTENA));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"FACTORYDISABLE")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"RIGHT")==0) {
-            printHciPackets((unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA));
-            writeUartHciPacket(serialHandle, &pckTERIGHTENA, sizeof(pckTERIGHTENA));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"PING")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"BOTH")==0){
-            printHciPackets((unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA));
-            writeUartHciPacket(serialHandle, &pckTEBOTHENA, sizeof(pckTEBOTHENA));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"VOLMAX")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"RESET")==0) {
-            printHciPackets((unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX));
-            writeUartHciPacket(serialHandle, &pckTEVOLMAX, sizeof(pckTEVOLMAX));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            printHciPackets((unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA));
-            writeUartHciPacket(serialHandle, &pckTEBOTHENA, sizeof(pckTEBOTHENA));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            //FACTRORY MODE DISABLE
-            printHciPackets((unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS));
-            writeUartHciPacket(serialHandle, &pckTEFACDIS, sizeof(pckTEFACDIS));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"LEFT")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"CHARGE")==0) {
-            printHciPackets((unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA));
-            writeUartHciPacket(serialHandle, &pckTECHARGENA, sizeof(pckTECHARGENA));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"RIGHT")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA));
+            teCmdProcessed=1;
         }
-        if (strcmp(argv[i],"CHARGEX")==0) {
-            printHciPackets((unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS));
-            writeUartHciPacket(serialHandle, &pckTECHARGDIS, sizeof(pckTECHARGDIS));
-            Sleep(DELAY_TE_COMMAND);
-            readUartHciPacket(serialHandle,&buffer,&bufferLen);
-            printHciPackets(buffer,bufferLen);
-            continue;
+        else if (strcmp(argv[i],"BOTH")==0){
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA));
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"CHARGE")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA));
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"CHARGEX")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS));
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"RESET")==0) {
+            teCmdStatus+=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA));
+            teCmdStatus+=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX));
+            teCmdStatus+=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA));
+            teCmdStatus+=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS));
+            teCmdStatus+=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS));
+            teCmdProcessed=1;
+        }
+        else {
+            fprintf(stderr,"ERROR: UNKNOWN TE command=%s\n",argv[i]);
+            teCmdStatus=HCI_NA;
+            break;
+        }
+        if (teCmdProcessed) {
+            teCmdProcessed=0;
+            printf("TE command=%s --> OVERALLSTATUS=0x%02X",argv[i],teCmdStatus);
+            if (teCmdStatus==HCI_SUCCESS) {
+                printf("(PASS)\n");
+                continue;
+            }
+            else {
+                printf("(FAIL)\n");
+                fprintf(stderr,"ERROR: TEENAGE command=%s NOT PROCESSED --> OVERALLSTATUS=0x%02X\n",argv[i],teCmdStatus);
+                break;
+            }
         }
     }
 
@@ -421,7 +450,7 @@ int main_PROD(int argc, char **argv) {
     printf(" ... closing serial connection\n");
     CloseHandle(serialHandle);
 
-    return (0);
+    return (teCmdStatus);
 }
 /*
 int main_DEVLhcitokenize(int argc, char **argv) {
@@ -614,9 +643,59 @@ int mainDEVLevent(int argc, char **argv) {
 }
 */
 
+unsigned char testCheckHciEventPacketsStatuses() {
+    //teststream CMD,EVNT(PASS),CMD,EVNT(FAIL),CMD,EVNT(PASS)
+    unsigned char testStream[63]={
+        0x01,0xB6,0xFD,0x0C,0x00,0x00,0x17,0x00,0x02,0x04,0x51,0x0C,0x07,0x02,0x8A,0x00,
+        0x04,0xFF,0x06,0x7F,0x06,0x00,0xB6,0xFD,0x00,
+        0x01,0x09,0xFE,0x09,0x00,0x00,0x01,0x4A,0xE8,0x6F,0x6F,0x80,0xF4,
+        0x04,0xFF,0x06,0x7F,0x06,0x11,0x09,0xFE,0x00,
+        0x01,0x0A,0xFE,0x03,0x00,0x00,0x13,
+        0x04,0xFF,0x06,0x7F,0x06,0x00,0x0A,0xFE,0x00
+        };
+    unsigned long testStreamLen=63;
+    unsigned char testZeroStream[1]={0x00};
+    unsigned long testZeroStreamLen=1;
+    unsigned char * statuses;
+    unsigned char statusesNum;
+    unsigned char overallStatus;
+
+    unsigned char i;
+
+    //TEST 1 OK KO OK Events
+    printHciPackets(testStream,testStreamLen);
+    overallStatus=checkHciEventPacketsStatuses(testStream,testStreamLen,&statuses,&statusesNum);
+
+    printf("overallStatus=0x%02X\n",overallStatus);
+    for (i=0;i!=statusesNum;i++) printf("statuses[%u]=0x%02X\n",i,statuses[i]);
+
+    if (statuses!=NULL && statusesNum==3 && statuses[0]==HCI_SUCCESS && statuses[1]==0x11 && statuses[2]==HCI_SUCCESS && overallStatus==0x11)
+        printf("TEST PASS\n");
+    else
+        printf("TEST FAIL\n");
+
+    free(statuses);
+
+    //TEST 2 No Event
+    overallStatus=checkHciEventPacketsStatuses(testZeroStream,testZeroStreamLen,&statuses,&statusesNum);
+
+    printf("overallStatus=0x%02X\n",overallStatus);
+    for (i=0;i!=statusesNum;i++) printf("statuses[%u]=0x%02X\n",i,statuses[i]);
+
+    if (statuses==NULL && statusesNum==0 && overallStatus==HCI_NA)
+        printf("TEST PASS\n");
+    else
+        printf("TEST FAIL\n");
+
+    free(statuses);
+
+    return (overallStatus);
+}
+
 int main(int argc, char **argv) {
     return (main_PROD(argc,argv));
     //return (main_DEVLhcitokenize(argc,argv));
     //return (mainDEVLevent(argc,argv));
+    //return ((int) testCheckHciEventPacketsStatuses());
 }
 

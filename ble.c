@@ -268,3 +268,34 @@ void printHciPackets(unsigned char * ptrStream, unsigned long sizeofStream) {
     }
     free(readHciPackets);
 }
+
+unsigned char checkHciEventPacketsStatuses(unsigned char * ptrStream, unsigned long sizeofStream, unsigned char ** statuses, unsigned char * statusesNum ) {
+    unsigned char i;
+    unsigned char j;
+    unsigned char ** readHciPackets=NULL;
+    unsigned char readHciPacketsLen;
+    hciEvent_packetWStatus * currentPacketEventStatus;
+    unsigned char currentPacketLen;
+    unsigned char * eventStatuses;
+    unsigned char eventStatusesNum=0;
+
+    bufhcitokenize(ptrStream, sizeofStream, &readHciPackets, &readHciPacketsLen);
+    eventStatuses=(unsigned char *) malloc(sizeof(*eventStatuses) * readHciPacketsLen);
+    for (j=0;j!=readHciPacketsLen;j++) {
+        if (j+1!=readHciPacketsLen) currentPacketLen=readHciPackets[j+1]-readHciPackets[j];
+        else currentPacketLen=readHciPackets[0]+sizeofStream-readHciPackets[j];
+        if (currentPacketLen >= sizeof(hciEvent_packetWStatus)) {
+            currentPacketEventStatus=(hciEvent_packetWStatus *) readHciPackets[j];
+            if (currentPacketEventStatus->header.packetType==HCI_PACKETTYPE_EVENT) eventStatuses[eventStatusesNum++]=currentPacketEventStatus->status;
+        }
+    }
+    free(readHciPackets);
+
+    eventStatuses=(unsigned char *) realloc(eventStatuses,sizeof(*eventStatuses) * eventStatusesNum);
+    *statuses=eventStatuses;
+    *statusesNum=eventStatusesNum;
+
+    for (i=0;i!=eventStatusesNum;i++) if (eventStatuses[i]!=HCI_SUCCESS) return (eventStatuses[i]);
+    if (i>0) return (HCI_SUCCESS);
+    return (HCI_NA);
+}

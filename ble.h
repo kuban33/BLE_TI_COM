@@ -24,6 +24,7 @@ extern "C"
 #define HCI_PACKET_COMMAND_MINSIZE 0x04
 #define HCI_PACKET_EVENT_MINSIZE 0x03
 #define HCI_SUCCESS 0x00
+#define HCI_NA 0xFF
 
 #define BD_ADDR_LEN 0x06
 #define BD_RESOLVEKEY_LEN 0x10
@@ -52,11 +53,6 @@ typedef uint8 rslvKey_t[BD_RESOLVEKEY_LEN];
 
 typedef struct {
     uint8 packetType;
-    void * packet;
-} hci_packet;
-
-typedef struct {
-    uint8 packetType;
 } hci_packetHeader;
 
 typedef union {
@@ -73,28 +69,22 @@ typedef union {
 } hciOpCode_t;
 
 typedef struct {
-    hciOpCode_t opCode;
-    uint8 dataLength;
-    //uint8 data0;
-} hciCommand_packet;
-
-typedef struct {
     uint8 packetType;
     hciOpCode_t opCode;
     uint8 dataLength;
 } hciCommand_packetHeader;
 
 typedef struct {
-    uint8 eventCode;
-    uint8 dataLength;
-    //uint8 data0;
-} hciEvent_packet;
-
-typedef struct {
     uint8 packetType;
     uint8 eventCode;
     uint8 dataLength;
 } hciEvent_packetHeader;
+
+typedef struct {
+    hciEvent_packetHeader header;
+    uint16 event;
+    uint8 status;
+} hciEvent_packetWStatus;
 
 typedef struct {
     uint8 type;
@@ -210,7 +200,37 @@ extern const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default;
 }
 #endif
 
+/*
+** DESCRIPTION: tokenizes (splits) buffer of bytes into hci packets, support both EVENT and COMMAND HCI packets
+** INPUTS:
+**   buffer - pointer to input byte array (e.g. received from uart)
+**   bufferLen - length of buffer
+** OUTPUTS:
+**   hciPackets - pointer to allocated array of split HCI packets
+**   hciPacketsLen - number of found HCI packets
+** RETURNS: number of found HCI packets
+*/
 extern unsigned char bufhcitokenize(unsigned char * buffer, unsigned long bufferLen, unsigned char *** hciPackets, unsigned char * hciPacketsLen);
-void printHciPackets(unsigned char * ptrStream, unsigned long sizeofStream);
+
+/*
+** DESCRIPTION: prints HCI packets from stream of bytes in a friendly way
+** DEPENDANCY: bufhcitokenize
+** INPUTS:
+**   ptrStream - pointer to input array (e.g. received from uart)
+**   sizeofStream - length of stream
+*/
+extern void printHciPackets(unsigned char * ptrStream, unsigned long sizeofStream);
+
+/*
+** DESCRIPTION: check statuses of all HCI Event packets in a byte stream
+** INPUTS:
+**   ptrStream - pointer to input array (e.g. received from uart)
+**   sizeofStream - length of stream
+** OUTPUTS:
+**   statuses - pointer to allocated array of HCI Events statuses
+**   statusesNum - pointer where number of statuses is saved
+** RETURNS: first FAIL status or PASS status
+*/
+extern unsigned char checkHciEventPacketsStatuses(unsigned char * ptrStream, unsigned long sizeofStream, unsigned char ** statuses, unsigned char * statusesNum );
 
 #endif // BLE_H

@@ -37,10 +37,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ble.h" />
-		<Unit filename="ble_gap_events.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="ble_gap_events.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

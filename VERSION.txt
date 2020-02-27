@@ -4,6 +4,12 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 06 : SARA 20200205
+- status verification of HCI Event packets
+- verification of TE commands added
+- added PING command for response confirmation
+CONTINUE RESET command ends with 0xFF
+
 beta 05 : SARA 20200115
 - delay commands raised 100 -> 250 ms , TE 200 -> 500 ms
 - added TE charging mode commands CHARGE, CHARGEX
