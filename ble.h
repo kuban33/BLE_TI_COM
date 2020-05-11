@@ -7,14 +7,10 @@
 #ifndef __BLE_H__
 #define __BLE_H__
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 //no struct padding
 #pragma pack(1)
 
+#define HCI_RESET 0x0C03
 #define HCI_CONNECTIONHANDLE_INIT 0xFFFE
 #define HCI_PACKETS_MAX 0xFF
 #define HCI_PACKETTYPE_COMMAND 0x01
@@ -23,6 +19,7 @@ extern "C"
 #define HCI_PACKET_MAXSIZE 0xFF
 #define HCI_PACKET_COMMAND_MINSIZE 0x04
 #define HCI_PACKET_EVENT_MINSIZE 0x03
+#define HCI_EVENT_COMMANDCOMPLETE 0x0E
 #define HCI_SUCCESS 0x00
 #define HCI_NA 0xFF
 
@@ -85,6 +82,26 @@ typedef struct {
     uint16 event;
     uint8 status;
 } hciEvent_packetWStatus;
+
+typedef struct {
+    uint8 type;
+    uint16 opCode;
+    uint8 dataLength;
+} hciReset_packet;
+extern const hciReset_packet hciReset_packet_default;
+
+typedef struct {
+    uint8 type;
+    //double check uint8 really?
+    uint8 eventCode;
+    uint8 dataLength;
+    uint8 packets;
+    uint16 opCode;
+    uint8 status;
+} hciReset_event;
+extern const hciReset_event hciReset_event_success;
+
+extern int checkHciEventReset(unsigned char * buffer, unsigned long bufferLen);
 
 typedef struct {
     uint8 type;
@@ -158,47 +175,6 @@ typedef struct {
     uint16 endHandle;
 } gattDiscAllChars_packet;
 extern const gattDiscAllChars_packet gattDiscAllChars_packet_default;
-
-typedef struct {
-    uint8 type;
-    uint16 opCode;
-    uint8 dataLength;
-    uint16 connHandle;
-    uint16 handle;
-    uint8 value[8];
-} gattWriteNoRsp_TE8_packet;
-extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEPING_packet_default;
-extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEFACDIS_packet_default;
-
-typedef struct {
-    uint8 type;
-    uint16 opCode;
-    uint8 dataLength;
-    uint16 connHandle;
-    uint16 handle;
-    uint8 value[9];
-} gattWriteNoRsp_TE9_packet;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEVOLMAX_packet_default;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TELEFTENA_packet_default;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TERIGHTENA_packet_default;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEBOTHENA_packet_default;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGENA_packet_default;
-extern const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGDIS_packet_default;
-
-typedef struct {
-    uint8 type;
-    uint16 opCode;
-    uint8 dataLength;
-    uint16 connHandle;
-    uint16 handle;
-    uint8 value[12];
-} gattWriteNoRsp_TE12_packet;
-extern const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default;
-
-
-#ifdef __cplusplus
-}
-#endif
 
 /*
 ** DESCRIPTION: tokenizes (splits) buffer of bytes into hci packets, support both EVENT and COMMAND HCI packets

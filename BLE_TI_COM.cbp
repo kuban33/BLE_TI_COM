@@ -41,6 +41,14 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="makefile" />
+		<Unit filename="te.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="te.h" />
+		<Unit filename="uart.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="uart.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

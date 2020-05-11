@@ -5,10 +5,19 @@ TE_SPIDER_TIBLE_TOOL
 CHANGELOG:
 ----------
 beta 06 : SARA 20200205
-- status verification of HCI Event packets
-- verification of TE commands added
+!!! CONTINUE !!!
+HCI reset validation first command fails when something still in Rx buffer.
+Create function to get last HCI packet. (Current know solution, but not the root cause)
+Replicate:
+> TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A NONEXISTINGCOMMAND
+> TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A RESET
+
+- HCI reset introduced as first command
+- when connecting to non existing device Init Terminate (force) revised
+- status verification of HCI Event packets (catch also TE cmd problems but should be 2nd level check)
 - added PING command for response confirmation
-CONTINUE RESET command ends with 0xFF
+- Teenage commands atomized, e.g. now needed to add FACTORYENABLE before commands
+- code refactoring (te.h, uart.h added)
 
 beta 05 : SARA 20200115
 - delay commands raised 100 -> 250 ms , TE 200 -> 500 ms
@@ -45,6 +54,6 @@ TODO:
 
 COMPILATION:
 ------------
-mingw32-gcc -o TE_SPIDER_TIBLE_TOOL.EXE ble.c main.c
+mingw32-gcc -o TE_SPIDER_TIBLE_TOOL.EXE ble.c uart.c te.c main.c
 
 *******************************************************************************/

@@ -5,10 +5,26 @@
  \date 20191009
 *******************************************************************************/
 #include "ble.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+
+const hciReset_packet hciReset_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type
+    HCI_RESET, //uint16 opCode
+    0x00 //uint8 dataLength
+};
+
+const hciReset_event hciReset_event_success={
+    HCI_PACKETTYPE_EVENT, //uint8 type
+    HCI_EVENT_COMMANDCOMPLETE, //uint8 eventCode
+    0x04, //uint8 dataLength
+    0x01, //uint8 packets
+    HCI_RESET, //uint16 opCode
+    HCI_SUCCESS //uint8 status
+};
 
 const attWriteReq_packet attWriteReq_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type
@@ -83,85 +99,14 @@ const gattDiscAllChars_packet gattDiscAllChars_packet_default={
     0xFFFF //uint16 endHandle;
 };
 
-const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEPING_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0C, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x04,0x51,0x06,0x01,0x02,0x75,0x00} //uint8 value[8];
-};
+int checkHciEventReset(unsigned char * buffer, unsigned long bufferLen) {
+    hciReset_event evntHciResetSuccess=hciReset_event_success;
 
-const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEFACDIS_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0C, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x04,0x51,0x0c,0x07,0x02,0x8a,0x00} //uint8 value[8];
-};
+    printf(">>>>>> sizeof(evntHciResetSuccess)=%d\n",sizeof(evntHciResetSuccess));
+    printf(">>>>>> (bufferLen*sizeof(*buffer))=%d\n",(bufferLen*sizeof(*buffer)));
 
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEVOLMAX_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x09,0x44,0x01,0x55,0x29,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TELEFTENA_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x0b,0x46,0x01,0x10,0x24,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TERIGHTENA_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x0c,0x46,0x01,0x20,0x34,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TEBOTHENA_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x0a,0x46,0x01,0x30,0x18,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGENA_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x06,0x56,0x01,0xb9,0xcb,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE9_packet gattWriteNoRsp_TECHARGDIS_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x0D, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x07,0x51,0x06,0x56,0x01,0xbd,0x33,0x00} //uint8 value[9];
-};
-
-const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type;
-    GATT_WRITENORESPONSE, //uint16 opCode;
-    0x10, //uint8 dataLength;
-    0x0000, //uint16 connHandle;
-    0x0017, //uint16 handle;
-    {0x02,0x0a,0x51,0x08,0x07,0x04,0xca,0xfe,0xba,0xbe,0xb7,0x00} //uint8 value[8];
+    if (sizeof(evntHciResetSuccess)!=(bufferLen*sizeof(*buffer))) return (1);
+    return (memcmp(&evntHciResetSuccess,buffer,sizeof(evntHciResetSuccess)));
 };
 
 //TODO unsigned long does not make sense when 0xFF*0xFF ~ unsigned short
