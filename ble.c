@@ -102,9 +102,8 @@ const gattDiscAllChars_packet gattDiscAllChars_packet_default={
 int checkHciEventReset(unsigned char * buffer, unsigned long bufferLen) {
     hciReset_event evntHciResetSuccess=hciReset_event_success;
 
-    printf(">>>>>> sizeof(evntHciResetSuccess)=%d\n",sizeof(evntHciResetSuccess));
-    printf(">>>>>> (bufferLen*sizeof(*buffer))=%d\n",(bufferLen*sizeof(*buffer)));
-
+    //printf(">>>>>> sizeof(evntHciResetSuccess)=%d\n",sizeof(evntHciResetSuccess));
+    //printf(">>>>>> (bufferLen*sizeof(*buffer))=%d\n",(bufferLen*sizeof(*buffer)));
     if (sizeof(evntHciResetSuccess)!=(bufferLen*sizeof(*buffer))) return (1);
     return (memcmp(&evntHciResetSuccess,buffer,sizeof(evntHciResetSuccess)));
 };

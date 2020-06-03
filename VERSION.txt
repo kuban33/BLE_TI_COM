@@ -4,14 +4,7 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
-beta 06 : SARA 20200205
-!!! CONTINUE !!!
-HCI reset validation first command fails when something still in Rx buffer.
-Create function to get last HCI packet. (Current know solution, but not the root cause)
-Replicate:
-> TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A NONEXISTINGCOMMAND
-> TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A RESET
-
+beta 06 : SARA 20200205 (release 20200603)
 - HCI reset introduced as first command
 - when connecting to non existing device Init Terminate (force) revised
 - status verification of HCI Event packets (catch also TE cmd problems but should be 2nd level check)
@@ -47,9 +40,14 @@ beta 01 : SARA 20191018
 
 TODO:
 -----
+- HCI reset validation first command fails when something still in Rx buffer.
+  Create function to get last HCI packet. (Current know solution, but not the root cause)
+  Replicate:
+  > TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A NONEXISTINGCOMMAND
+  > TE_SPIDER_TIBLE_TOOL.EXE COM9 F4:80:6F:6F:E8:4A RESET
+- check TE commands correctness, e.g. ends successfully when issued LEFT command without FACTORYENABLE
 - uni Rx handling
 - interrupts instead of predicted response? Needed to production?
-- check TE commands correctness
 - dll for LabView
 
 COMPILATION:
