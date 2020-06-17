@@ -33,7 +33,7 @@ const attWriteReq_packet attWriteReq_packet_default={
     0x0000, //uint16 connHandle;
     0x00, //uint8 signature;
     0x00, //uint8 command;
-    0x0018, //uint16 handle;
+    ATT_DEFHANDLE, //uint16 handle;
     {0x01, 0x00} //uint8 value[0x02];
 };
 

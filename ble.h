@@ -27,6 +27,8 @@
 #define BD_RESOLVEKEY_LEN 0x10
 
 #define ATT_WRITEREQUEST 0xFD12
+//This is Teenage hardcoded handle
+#define ATT_DEFHANDLE 0x001A
 
 #define GAP_DEVICEINIT 0xFE00
 #define GAP_DEVICEDISCOVERYREQUEST 0xFE04

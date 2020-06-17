@@ -7,7 +7,7 @@
 #include "ble.h"
 #include "te.h"
 
-#define VERSION "beta6"
+#define VERSION "beta7"
 
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
@@ -219,7 +219,7 @@ int main_PROD(int argc, char **argv) {
 
     //reference length = mac add length * 2chars + delimiters in between
     if (strlen(pMacAddrStr) != MAC_STR_WDELIM) {
-        fprintf(stderr,"ERROR: wrong length=%d of macAddrStr=%s\n",strlen(pMacAddrStr),pMacAddrStr);
+        fprintf(stderr,"ERROR: wrong length=%lu of macAddrStr=%s\n",strlen(pMacAddrStr),pMacAddrStr);
         printf("HINT: Double check entered bluetooth address? Is it in delimited format e.g.: E2:17:4D:B8:E0:EE\n");
         return (1);
     }

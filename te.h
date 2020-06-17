@@ -14,6 +14,8 @@
 #pragma pack(1)
 
 #define DELAY_TE_COMMAND 500
+//This is Teenage hardcoded handle
+#define TE_GATT_HANDLE 0x0019
 
 typedef struct {
     uint8 type;
