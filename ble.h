@@ -20,6 +20,7 @@
 #define HCI_PACKET_COMMAND_MINSIZE 0x04
 #define HCI_PACKET_EVENT_MINSIZE 0x03
 #define HCI_EVENT_COMMANDCOMPLETE 0x0E
+#define HCI_EVENT_PROCEDURECOMPLETED 0x1A
 #define HCI_SUCCESS 0x00
 #define HCI_NA 0xFF
 
@@ -37,6 +38,7 @@
 #define GAP_GETPARAM 0xFE31
 
 #define GATT_DISCOVERALLCHARS 0xFDB2
+#define GATT_DISCOVERPRIMARYSERVICEBYUUID 0xFD86
 #define GATT_WRITENORESPONSE 0xFDB6
 
 typedef signed char int8;
@@ -109,18 +111,6 @@ typedef struct {
     uint8 type;
     uint16 opCode;
     uint8 dataLength;
-    uint16 connHandle;
-    uint8 signature;
-    uint8 command;
-    uint16 handle;
-    uint8 value[0x02];
-} attWriteReq_packet;
-extern const attWriteReq_packet attWriteReq_packet_default;
-
-typedef struct {
-    uint8 type;
-    uint16 opCode;
-    uint8 dataLength;
     uint8 profileRole;
     uint8 maxScanRsps;
     uint8 irk[0x10];
@@ -173,10 +163,46 @@ typedef struct {
     uint16 opCode;
     uint8 dataLength;
     uint16 connHandle;
+    uint8 signature;
+    uint8 command;
+    uint16 handle;
+    uint8 value[0x02];
+} attWriteReq_packet;
+extern const attWriteReq_packet attWriteReq_packet_default;
+
+typedef struct {
+    uint16 event;
+    uint8 status;
+    uint16 connHandle;
+    uint8 pduLen;
+} attFindByTypeValueRsp_eventHeader;
+
+typedef struct {
+    uint8 type;
+    uint16 opCode;
+    uint8 dataLength;
+    uint16 connHandle;
     uint16 startHandle;
     uint16 endHandle;
 } gattDiscAllChars_packet;
 extern const gattDiscAllChars_packet gattDiscAllChars_packet_default;
+
+typedef struct {
+    uint8 type;
+    uint16 opCode;
+    uint8 dataLength;
+    uint16 connHandle;
+    uint8 value[0x10];
+} gattDiscPrimaryServiceByUUID_packet;
+extern const gattDiscPrimaryServiceByUUID_packet gattDiscPrimaryServiceByUUID_packet_default;
+
+typedef struct {
+    uint8 type;
+    uint16 opCode;
+    uint8 dataLength;
+    uint16 connHandle;
+    uint16 handle;
+} gattWriteNoRsp_packetHeader;
 
 /*
 ** DESCRIPTION: tokenizes (splits) buffer of bytes into hci packets, support both EVENT and COMMAND HCI packets

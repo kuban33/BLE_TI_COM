@@ -53,7 +53,9 @@ typedef struct {
 } gattWriteNoRsp_TE12_packet;
 extern const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default;
 
-extern unsigned char configureTECharacteristics(HANDLE serialHandle);
-extern unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength);
+extern unsigned char configureTECharacteristics(HANDLE serialHandle, unsigned short serviceHandle);
+//extern unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength);
+extern unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength, unsigned short teHandle);
+extern unsigned char getTEService(HANDLE serialHandle, unsigned short * handle);
 
 #endif // __TE_H__

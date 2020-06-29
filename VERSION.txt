@@ -4,6 +4,10 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 08 : SARA 20200629
+- GATT service discover by UUID (delivered from TE) rather than hardcoded handles, handle changes with TE SW version to version
+- UUID: 00:00:00:aD:bb:da:ba:ab:e3:4d:00:6e:0a:e1:a6:10
+
 beta 07 : SARA 20200617
 - change default handle ATT_DEFHANDLE 0x001A, TE_GATT_HANDLE 0x0019, this is change by Teenage and hardcoded !!! ???
 

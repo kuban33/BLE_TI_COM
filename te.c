@@ -6,6 +6,7 @@
 *******************************************************************************/
 #include "te.h"
 #include "uart.h"
+#include <stdio.h>
 
 const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEPING_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type;
@@ -88,14 +89,65 @@ const gattWriteNoRsp_TE12_packet gattWriteNoRsp_TEFACENA_packet_default={
     {0x02,0x0a,0x51,0x08,0x07,0x04,0xca,0xfe,0xba,0xbe,0xb7,0x00} //uint8 value[8];
 };
 
-unsigned char configureTECharacteristics(HANDLE serialHandle) {
+unsigned char getTEService(HANDLE serialHandle, unsigned short * handle) {
     unsigned char * buffer;
     unsigned long bufferLen;
     unsigned char * eventStatuses;
     unsigned char eventStatusesNum;
-    unsigned char overallCmdStatus=0x00;
+    unsigned char overallCmdStatus=HCI_SUCCESS;
+    unsigned char attValueCmdStatus;
+    gattDiscPrimaryServiceByUUID_packet pckDiscServUUID=gattDiscPrimaryServiceByUUID_packet_default;
+    unsigned char ** readHciPackets=NULL;
+    unsigned char readHciPacketsLen;
+    hciEvent_packetHeader * hciEventHeader;
+    attFindByTypeValueRsp_eventHeader * attFindByTypeValueRspHeader;
+
+    printHciPackets((unsigned char *) &pckDiscServUUID,sizeof(pckDiscServUUID));
+    writeUart(serialHandle, &pckDiscServUUID, sizeof(pckDiscServUUID));
+    //GAP HCI Command status
+    readUart(serialHandle,&buffer,&bufferLen);
+    overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
+    printHciPackets(buffer,bufferLen);
+    //ATT value
+    readUart(serialHandle,&buffer,&bufferLen);
+    overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
+    if (overallCmdStatus == HCI_SUCCESS) {
+        if (bufhcitokenize(buffer, bufferLen, &readHciPackets, &readHciPacketsLen)) {
+            hciEventHeader=(hciEvent_packetHeader *) readHciPackets[readHciPacketsLen-1];
+            if (hciEventHeader->dataLength == 0x0A) {
+                attFindByTypeValueRspHeader=(attFindByTypeValueRsp_eventHeader *) (hciEventHeader+1);
+                if (attFindByTypeValueRspHeader->status == HCI_SUCCESS) {
+                    *handle=(unsigned short) *((unsigned short *) ((unsigned char *)attFindByTypeValueRspHeader+hciEventHeader->dataLength-sizeof(unsigned short)));
+                }
+                else overallCmdStatus|=HCI_NA;
+            }
+            else overallCmdStatus|=HCI_NA;
+        }
+        else overallCmdStatus|=HCI_NA;
+    }
+    printHciPackets(buffer,bufferLen);
+    //ATT value status
+    readUart(serialHandle,&buffer,&bufferLen);
+    attValueCmdStatus=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
+    if (attValueCmdStatus == HCI_EVENT_PROCEDURECOMPLETED) overallCmdStatus|=HCI_SUCCESS;
+    else overallCmdStatus|=attValueCmdStatus;
+    printHciPackets(buffer,bufferLen);
+
+    free(eventStatuses);
+    free(buffer);
+
+    return (overallCmdStatus);
+}
+
+unsigned char configureTECharacteristics(HANDLE serialHandle, unsigned short serviceHandle) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+    unsigned char * eventStatuses;
+    unsigned char eventStatusesNum;
+    unsigned char overallCmdStatus=HCI_SUCCESS;
     attWriteReq_packet pckCharConf=attWriteReq_packet_default;
 
+    pckCharConf.handle=serviceHandle;
     printHciPackets((unsigned char *) &pckCharConf,sizeof(pckCharConf));
     writeUart(serialHandle, &pckCharConf, sizeof(pckCharConf));
     readUart(serialHandle,&buffer,&bufferLen);
@@ -108,12 +160,38 @@ unsigned char configureTECharacteristics(HANDLE serialHandle) {
     return (overallCmdStatus);
 }
 
+/*
 unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength) {
     unsigned char * buffer;
     unsigned long bufferLen;
     unsigned char * statuses;
     unsigned char statusesNum;
     unsigned char overallStatus;
+
+    printHciPackets(packet,packetLength);
+    writeUart(serialHandle,packet,packetLength);
+    Sleep(DELAY_TE_COMMAND);
+    readUart(serialHandle,&buffer,&bufferLen);
+    printHciPackets(buffer,bufferLen);
+    overallStatus=checkHciEventPacketsStatuses(buffer,bufferLen,&statuses,&statusesNum);
+
+    free(buffer);
+    free(statuses);
+
+    return (overallStatus);
+}
+*/
+
+unsigned char processTECommand(HANDLE serialHandle, unsigned char * packet, unsigned long packetLength, unsigned short teHandle) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+    unsigned char * statuses;
+    unsigned char statusesNum;
+    unsigned char overallStatus;
+    gattWriteNoRsp_packetHeader * tePacketHeader;
+
+    tePacketHeader=(gattWriteNoRsp_packetHeader *) packet;
+    tePacketHeader->handle=teHandle;
 
     printHciPackets(packet,packetLength);
     writeUart(serialHandle,packet,packetLength);

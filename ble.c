@@ -26,17 +26,6 @@ const hciReset_event hciReset_event_success={
     HCI_SUCCESS //uint8 status
 };
 
-const attWriteReq_packet attWriteReq_packet_default={
-    HCI_PACKETTYPE_COMMAND, //uint8 type
-    ATT_WRITEREQUEST, //uint16 opCode
-    0x08, //uint8 dataLength
-    0x0000, //uint16 connHandle;
-    0x00, //uint8 signature;
-    0x00, //uint8 command;
-    ATT_DEFHANDLE, //uint16 handle;
-    {0x01, 0x00} //uint8 value[0x02];
-};
-
 const gapDeviceInit_packet gapDeviceInit_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type
     GAP_DEVICEINIT, //uint16 opCode
@@ -90,6 +79,17 @@ const gapGetParam_packet gapGetParam_packet_default={
     0x00 //uint8 paramId
 };
 
+const attWriteReq_packet attWriteReq_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type
+    ATT_WRITEREQUEST, //uint16 opCode
+    0x08, //uint8 dataLength
+    0x0000, //uint16 connHandle;
+    0x00, //uint8 signature;
+    0x00, //uint8 command;
+    ATT_DEFHANDLE, //uint16 handle;
+    {0x01, 0x00} //uint8 value[0x02];
+};
+
 const gattDiscAllChars_packet gattDiscAllChars_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type;
     GATT_DISCOVERALLCHARS, //uint16 opCode;
@@ -97,6 +97,14 @@ const gattDiscAllChars_packet gattDiscAllChars_packet_default={
     0x0000, //uint16 connHandle;
     0x0001, //uint16 startHandle;
     0xFFFF //uint16 endHandle;
+};
+
+const gattDiscPrimaryServiceByUUID_packet gattDiscPrimaryServiceByUUID_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type;
+    GATT_DISCOVERPRIMARYSERVICEBYUUID, //uint16 opCode;
+    0x12, //uint8 dataLength;
+    0x0000, //uint16 connHandle;
+    {0x00,0x00,0x00,0xAD,0xBB,0xDA,0xBA,0xAB,0xE3,0x4D,0x00,0x6E,0x0A,0xE1,0xA6,0x10} //uint8 value[0x10];
 };
 
 int checkHciEventReset(unsigned char * buffer, unsigned long bufferLen) {
