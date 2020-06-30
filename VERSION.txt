@@ -4,6 +4,9 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 09 : SARA 20200630
+- added TE commands SOURCEADC, SOURCEFM - source selection ADC (Line-In), FM
+
 beta 08 : SARA 20200629
 - GATT service discover by UUID (delivered from TE) rather than hardcoded handles, handle changes with TE SW version to version
 - UUID: 00:00:00:aD:bb:da:ba:ab:e3:4d:00:6e:0a:e1:a6:10

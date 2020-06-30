@@ -7,7 +7,7 @@
 #include "ble.h"
 #include "te.h"
 
-#define VERSION "beta8"
+#define VERSION "beta 09"
 
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
@@ -30,15 +30,17 @@ void printHelp(char *arg0) {
     printf("   %s --help\n",arg0);
     printf("   %s --version\n",arg0);
     printf("Commands:\n");
-    printf("   FACTORYENABLE - puts spider into factory mode\n");
-    printf("   FACTORYDISABLE - puts spider out of factory mode\n");
-    printf("   PING - pings spider and confirms response\n");
-    printf("   VOLMAX (*) - sets volume to 100%%\n");
+    printf("   FACTORYENABLE - Puts spider into factory mode\n");
+    printf("   FACTORYDISABLE - Puts spider out of factory mode\n");
+    printf("   PING - Pings spider and confirms response\n");
+    printf("   VOLMAX (*) - Sets volume to 100%%\n");
     printf("   LEFT (*) - Enables only left speakers\n");
     printf("   RIGHT (*) - Enables only right speakers\n");
     printf("   BOTH (*) - Enables both left and right speakers\n");
     printf("   CHARGE (*) - Enables charging mode (caution disables factory mode)\n");
     printf("   CHARGEX (*) - Disables charging mode\n");
+    printf("   SOURCEADC (*) - Selects Line-In source\n");
+    printf("   SOURCEFM (*) - Selects Radio source\n");
     printf("   RESET - included (FACTORYENABLE,VOLMAX,BOTH,CHARGEX,FACTORYDISABLE)\n");
     printf("Notes:\n");
     printf("   Commands marked with (*) requires factory mode enabled - FACTORYENABLE\n");
@@ -203,6 +205,8 @@ int main_PROD(int argc, char **argv) {
     gattWriteNoRsp_TE8_packet pckTEFACDIS=gattWriteNoRsp_TEFACDIS_packet_default;
     gattWriteNoRsp_TE9_packet pckTECHARGENA=gattWriteNoRsp_TECHARGENA_packet_default;
     gattWriteNoRsp_TE9_packet pckTECHARGDIS=gattWriteNoRsp_TECHARGDIS_packet_default;
+    gattWriteNoRsp_TE9_packet pckTESRCADC=gattWriteNoRsp_TESRCADC_packet_default;
+    gattWriteNoRsp_TE9_packet pckTESRCFM=gattWriteNoRsp_TESRCFM_packet_default;
 
     if (argc==2 && strcmp(argv[1],"--help")==0) {
         printHelp(argv[0]);
@@ -346,6 +350,14 @@ int main_PROD(int argc, char **argv) {
         }
         else if (strcmp(argv[i],"CHARGEX")==0) {
             teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),teATTHandle);
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"SOURCEADC")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCADC,sizeof(pckTESRCADC),teATTHandle);
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"SOURCEFM")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),teATTHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"RESET")==0) {
