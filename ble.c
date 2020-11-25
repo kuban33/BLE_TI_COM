@@ -72,6 +72,14 @@ const gapTerminateLinkRequest_packet gapTerminateLinkRequest_packet_init={
     0x13 //uint8 discReason
 };
 
+const gapSetParam_packet gapSetParam_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type
+    GAP_SETPARAM, //uint16 opCode
+    0x03, //uint8 dataLength
+    TGAP_CONNESTSUPERVTIMEOUT, //uint8 paramId
+    0x0064 //uint16 paramValue ~ 1000 ms
+};
+
 const gapGetParam_packet gapGetParam_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type
     GAP_GETPARAM, //uint16 opCode
@@ -97,6 +105,15 @@ const gattDiscAllChars_packet gattDiscAllChars_packet_default={
     0x0000, //uint16 connHandle;
     0x0001, //uint16 startHandle;
     0xFFFF //uint16 endHandle;
+};
+
+const gattDiscAllChars_packet gattDiscAllCharDescs_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type;
+    GATT_DISCALLCHARDESCS, //uint16 opCode;
+    0x06, //uint8 dataLength;
+    0x0000, //uint16 connHandle;
+    0x0001, //uint16 startHandle;
+    0x00FF //uint16 endHandle;
 };
 
 const gattDiscPrimaryServiceByUUID_packet gattDiscPrimaryServiceByUUID_packet_default={

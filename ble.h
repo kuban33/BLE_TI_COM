@@ -22,7 +22,10 @@
 #define HCI_EVENT_COMMANDCOMPLETE 0x0E
 #define HCI_EVENT_PROCEDURECOMPLETED 0x1A
 #define HCI_SUCCESS 0x00
+#define HCI_PROCEDURECOMPLETED 0x1A
 #define HCI_NA 0xFF
+
+#define HCI_LE_EVENT_EXTEVENT 0xFF
 
 #define BD_ADDR_LEN 0x06
 #define BD_RESOLVEKEY_LEN 0x10
@@ -30,16 +33,21 @@
 #define ATT_WRITEREQUEST 0xFD12
 //This is Teenage hardcoded handle
 #define ATT_DEFHANDLE 0x001A
+#define ATT_FINDINFORSP 0x0505
 
 #define GAP_DEVICEINIT 0xFE00
 #define GAP_DEVICEDISCOVERYREQUEST 0xFE04
 #define GAP_ESTABLISHLINKREQUEST 0xFE09
 #define GAP_TERMINATELINKREQUEST 0xFE0A
+#define GAP_SETPARAM 0xFE30
 #define GAP_GETPARAM 0xFE31
 
 #define GATT_DISCOVERALLCHARS 0xFDB2
 #define GATT_DISCOVERPRIMARYSERVICEBYUUID 0xFD86
 #define GATT_WRITENORESPONSE 0xFDB6
+#define GATT_DISCALLCHARDESCS 0xFD84
+
+#define TGAP_CONNESTSUPERVTIMEOUT 0x19
 
 typedef signed char int8;
 typedef unsigned char uint8;
@@ -155,6 +163,15 @@ typedef struct {
     uint16 opCode;
     uint8 dataLength;
     uint8 paramId;
+    uint16 paramValue;
+} gapSetParam_packet;
+extern const gapSetParam_packet gapSetParam_packet_default;
+
+typedef struct {
+    uint8 type;
+    uint16 opCode;
+    uint8 dataLength;
+    uint8 paramId;
 } gapGetParam_packet;
 extern const gapGetParam_packet gapGetParam_packet_default;
 
@@ -186,6 +203,7 @@ typedef struct {
     uint16 endHandle;
 } gattDiscAllChars_packet;
 extern const gattDiscAllChars_packet gattDiscAllChars_packet_default;
+extern const gattDiscAllChars_packet gattDiscAllCharDescs_packet_default;
 
 typedef struct {
     uint8 type;

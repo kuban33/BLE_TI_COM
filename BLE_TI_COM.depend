@@ -61,16 +61,16 @@
 1578989070 c:\_c_projects\ble_ti_com\ble_gap_events.h
 	"ble.h"
 
-1593081033 c:\_c_projects\ble_ti_com\ble.h
+1606132514 c:\_c_projects\ble_ti_com\ble.h
 
-1592897148 source:c:\_c_projects\ble_ti_com\ble.c
+1606117585 source:c:\_c_projects\ble_ti_com\ble.c
 	"ble.h"
 	<stdlib.h>
 	<stdio.h>
 	<ctype.h>
 	<string.h>
 
-1592988791 source:c:\_c_projects\ble_ti_com\main.c
+1606132630 source:c:\_c_projects\ble_ti_com\main.c
 	<stdio.h>
 	<stdlib.h>
 	<stddef.h>
@@ -80,21 +80,23 @@
 	"ble.h"
 	"te.h"
 
-1583227883 source:c:\_c_projects\ble_ti_com\uart.c
+1605786866 source:c:\_c_projects\ble_ti_com\uart.c
 	"uart.h"
 	<stdlib.h>
 	<stdio.h>
 	<ctype.h>
 	<string.h>
 
-1582811516 c:\_c_projects\ble_ti_com\uart.h
+1605872827 c:\_c_projects\ble_ti_com\uart.h
 	<windows.h>
 
-1592908616 source:c:\_c_projects\ble_ti_com\te.c
+1606132143 source:c:\_c_projects\ble_ti_com\te.c
 	"te.h"
 	"uart.h"
+	<stdio.h>
+	<stddef.h>
 
-1592988649 c:\_c_projects\ble_ti_com\te.h
+1606131376 c:\_c_projects\ble_ti_com\te.h
 	"ble.h"
 	"uart.h"
 

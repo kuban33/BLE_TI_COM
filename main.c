@@ -11,6 +11,7 @@
 
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
+#define DELAY_SEPRVISORTIMEOUT 1000
 #define MAC_STR_WDELIM (BD_ADDR_LEN*2)+(BD_ADDR_LEN-1)
 
 void printVersion(char *arg0) {
@@ -95,33 +96,21 @@ unsigned char initializeBleTICC2540(HANDLE serialHandle) {
     unsigned char eventStatusesNum;
     unsigned char overallCmdStatus=0x00;
     gapDeviceInit_packet pckDevInit=gapDeviceInit_packet_default;
-    //why multi init
-    gapGetParam_packet pckGetParam[4]={gapGetParam_packet_default,gapGetParam_packet_default,gapGetParam_packet_default,gapGetParam_packet_default};
+    gapSetParam_packet pkcSetParam=gapSetParam_packet_default;
 
     //TEXAS INIT
     //TI Init packets
-    pckGetParam[0].paramId=0x15;
-    pckGetParam[1].paramId=0x16;
-    pckGetParam[2].paramId=0x1A;
-    pckGetParam[3].paramId=0x19;
     printHciPackets((unsigned char *) &pckDevInit,sizeof(pckDevInit));
     writeUart(serialHandle, &pckDevInit, sizeof(pckDevInit));
     readUart(serialHandle,&buffer,&bufferLen);
     overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
     printHciPackets(buffer,bufferLen);
-    printHciPackets((unsigned char *) &pckGetParam[0],sizeof(pckGetParam[0]));
-    writeUart(serialHandle, &pckGetParam[0], sizeof(pckGetParam[0]));
-    printHciPackets((unsigned char *) &pckGetParam[1],sizeof(pckGetParam[1]));
-    writeUart(serialHandle, &pckGetParam[1], sizeof(pckGetParam[1]));
-    printHciPackets((unsigned char *) &pckGetParam[2],sizeof(pckGetParam[2]));
-    writeUart(serialHandle, &pckGetParam[2], sizeof(pckGetParam[2]));
-    printHciPackets((unsigned char *) &pckGetParam[3],sizeof(pckGetParam[3]));
-    writeUart(serialHandle, &pckGetParam[3], sizeof(pckGetParam[3]));
+    //Supervision timeout setup 0x64 ~ 1000 ms
+    printHciPackets((unsigned char *) &pkcSetParam,sizeof(pkcSetParam));
+    writeUart(serialHandle, &pkcSetParam, sizeof(pkcSetParam));
     readUart(serialHandle,&buffer,&bufferLen);
     overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
     printHciPackets(buffer,bufferLen);
-    // HANDLE rx packets?
-    //printf(" Initialize completed.\n");
 
     free(eventStatuses);
     free(buffer);
@@ -149,6 +138,29 @@ unsigned char establishBLEConnection(HANDLE serialHandle, const unsigned char * 
     if (!readUart(serialHandle,&buffer,&bufferLen)) {
         overallCmdStatus=HCI_NA;
     }
+    printHciPackets(buffer,bufferLen);
+
+    free(eventStatuses);
+    free(buffer);
+
+    return (overallCmdStatus);
+}
+
+unsigned char discoverBLEAllCharDescs(HANDLE serialHandle) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+    unsigned char * eventStatuses;
+    unsigned char eventStatusesNum;
+    unsigned char overallCmdStatus=0x00;
+    gattDiscAllChars_packet pckAllDesc = gattDiscAllCharDescs_packet_default;
+
+    printHciPackets((unsigned char *) &pckAllDesc,sizeof(pckAllDesc));
+    writeUart(serialHandle, &pckAllDesc, sizeof(pckAllDesc));
+    //TODO analyze
+    Sleep(2500);
+    readUart(serialHandle,&buffer,&bufferLen);
+    overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
+    printHciPackets(buffer,bufferLen);
 
     free(eventStatuses);
     free(buffer);
@@ -182,6 +194,19 @@ unsigned char terminateBLEConnection(HANDLE serialHandle, unsigned char force) {
     return (overallCmdStatus);
 }
 
+unsigned char terminationBLEFlush(HANDLE serialHandle) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+
+    Sleep(DELAY_SEPRVISORTIMEOUT);
+    readUart(serialHandle,&buffer,&bufferLen);
+    printHciPackets(buffer,bufferLen);
+
+    free(buffer);
+
+    return (HCI_SUCCESS);
+}
+
 int main_PROD(int argc, char **argv) {
     char * pComPortStr;
     char * pMacAddrStr;
@@ -194,19 +219,20 @@ int main_PROD(int argc, char **argv) {
     unsigned char teCmdProcessed=0;
     unsigned char teCmdStatus;
     unsigned short serviceATTHandle;
-    unsigned short teATTHandle;
+    unsigned short charTEHandle;
+    unsigned char teDisconnectInitiated=0;
 
-    gattWriteNoRsp_TE8_packet pckTEPING=gattWriteNoRsp_TEPING_packet_default;
-    gattWriteNoRsp_TE12_packet pckTEFACENA=gattWriteNoRsp_TEFACENA_packet_default;
-    gattWriteNoRsp_TE9_packet pckTEVOLMAX=gattWriteNoRsp_TEVOLMAX_packet_default;
-    gattWriteNoRsp_TE9_packet pckTELEFTENA=gattWriteNoRsp_TELEFTENA_packet_default;
-    gattWriteNoRsp_TE9_packet pckTERIGHTENA=gattWriteNoRsp_TERIGHTENA_packet_default;
-    gattWriteNoRsp_TE9_packet pckTEBOTHENA=gattWriteNoRsp_TEBOTHENA_packet_default;
-    gattWriteNoRsp_TE8_packet pckTEFACDIS=gattWriteNoRsp_TEFACDIS_packet_default;
-    gattWriteNoRsp_TE9_packet pckTECHARGENA=gattWriteNoRsp_TECHARGENA_packet_default;
-    gattWriteNoRsp_TE9_packet pckTECHARGDIS=gattWriteNoRsp_TECHARGDIS_packet_default;
-    gattWriteNoRsp_TE9_packet pckTESRCADC=gattWriteNoRsp_TESRCADC_packet_default;
-    gattWriteNoRsp_TE9_packet pckTESRCFM=gattWriteNoRsp_TESRCFM_packet_default;
+    gattWriteNoRsp_TE7_packet pckTEPING=gattWriteNoRsp_TEPING_packet_default;
+    gattWriteNoRsp_TE11_packet pckTEFACENA=gattWriteNoRsp_TEFACENA_packet_default;
+    gattWriteNoRsp_TE8_packet pckTEVOLMAX=gattWriteNoRsp_TEVOLMAX_packet_default;
+    gattWriteNoRsp_TE8_packet pckTELEFTENA=gattWriteNoRsp_TELEFTENA_packet_default;
+    gattWriteNoRsp_TE8_packet pckTERIGHTENA=gattWriteNoRsp_TERIGHTENA_packet_default;
+    gattWriteNoRsp_TE8_packet pckTEBOTHENA=gattWriteNoRsp_TEBOTHENA_packet_default;
+    gattWriteNoRsp_TE7_packet pckTEFACDIS=gattWriteNoRsp_TEFACDIS_packet_default;
+    gattWriteNoRsp_TE8_packet pckTECHARGENA=gattWriteNoRsp_TECHARGENA_packet_default;
+    gattWriteNoRsp_TE8_packet pckTECHARGDIS=gattWriteNoRsp_TECHARGDIS_packet_default;
+    gattWriteNoRsp_TE8_packet pckTESRCADC=gattWriteNoRsp_TESRCADC_packet_default;
+    gattWriteNoRsp_TE8_packet pckTESRCFM=gattWriteNoRsp_TESRCFM_packet_default;
 
     if (argc==2 && strcmp(argv[1],"--help")==0) {
         printHelp(argv[0]);
@@ -289,7 +315,7 @@ int main_PROD(int argc, char **argv) {
     printf(" ... discovering TE BLE service\n");
     if (getTEService(serialHandle, &serviceATTHandle)!=HCI_SUCCESS) {
         fprintf(stderr,"ERROR: not able to discover TE BLE service with UUID=0x00,0x00,0x00,0xAD,0xBB,0xDA,0xBA,0xAB,0xE3,0x4D,0x00,0x6E,0x0A,0xE1,0xA6,0x10\n");
-        printf("HINT: Repeat. Reset TE device. Reconnect TI CC2540 USB Dongle.\n");
+        printf("HINT: Possible wrong piece.\n");
         printf(" ... terminating BLE connection\n");
         terminateBLEConnection(serialHandle,0);
         printf(" ... closing serial connection\n");
@@ -297,15 +323,25 @@ int main_PROD(int argc, char **argv) {
         return (1);
     }
     printf(" TE BLE service found at handle=0x%04X\n",serviceATTHandle);
-    //CAUTION DVT2 does not support dynamic handle notification that's why this:
-    teATTHandle=serviceATTHandle-1;
-    printf(" TE BLE characteristic derived at handle=0x%04X\n",teATTHandle);
 
-    //TE CHARACTERISTIC CONFIGURATION
-    printf(" ... configuring TE BLE characteristics\n");
+    //TE CHARACTERISTICS DISCOVERY
+    printf(" ... discovering TE BLE characteristics\n");
+    if (getTECharDesc(serialHandle, &charTEHandle)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: not able to discover TE BLE characteristics with UUID=0x3B,0x21,0xA8,0x25,0x85,0x20,0x75,0x95,0x97,0x4B,0x09,0x64,0xEB,0x2A,0x83,0xC1\n");
+        printf("HINT: Possible wrong piece.\n");
+        printf(" ... terminating BLE connection\n");
+        terminateBLEConnection(serialHandle,0);
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" TE BLE characteristics found at handle=0x%04X\n",charTEHandle);
+
+    //TE SERVICE CONFIGURATION
+    printf(" ... configuring TE BLE service\n");
     if (configureTECharacteristics(serialHandle,serviceATTHandle)!=HCI_SUCCESS) {
-        fprintf(stderr,"ERROR: not able to configure TE characteristics in Dev with MAC=%s\n",macAddrStr);
-        printf("HINT: Double check MAC address. Reset TE device. Repeat. Reconnect TI CC2540 USB Dongle.\n");
+        fprintf(stderr,"ERROR: not able to configure TE service in Dev with MAC=%s\n",macAddrStr);
+        printf("HINT: Possible wrong piece.\n");
         printf(" ... terminating BLE connection\n");
         terminateBLEConnection(serialHandle,0);
         printf(" ... closing serial connection\n");
@@ -317,57 +353,59 @@ int main_PROD(int argc, char **argv) {
     for (i=3;i!=argc;i++) {
         printf("TE command=%s\n",argv[i]);
         if (strcmp(argv[i],"FACTORYENABLE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"FACTORYDISABLE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"PING")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"VOLMAX")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"LEFT")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"RIGHT")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"BOTH")==0){
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"CHARGE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA),charTEHandle);
             teCmdProcessed=1;
+            teDisconnectInitiated=1;
         }
         else if (strcmp(argv[i],"CHARGEX")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),charTEHandle);
             teCmdProcessed=1;
+            teDisconnectInitiated=1;
         }
         else if (strcmp(argv[i],"SOURCEADC")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCADC,sizeof(pckTESRCADC),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCADC,sizeof(pckTESRCADC),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"SOURCEFM")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"RESET")==0) {
             //bitwise OR in order to group cmd results
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),teATTHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),teATTHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),teATTHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),teATTHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),teATTHandle);
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),charTEHandle);
+            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),charTEHandle);
+            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),charTEHandle);
+            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),charTEHandle);
             teCmdProcessed=1;
+            teDisconnectInitiated=1;
         }
         else {
             fprintf(stderr,"ERROR: UNKNOWN TE command=%s\n",argv[i]);
@@ -389,9 +427,16 @@ int main_PROD(int argc, char **argv) {
         }
     }
 
-    //TERMINATE CONNECTION
-    printf(" ... terminating BLE connection\n");
-    terminateBLEConnection(serialHandle,0);
+    if (teDisconnectInitiated) {
+        //TE TEMINATION INITIATED
+        printf(" ... BLE connection was terminated by TE\n");
+        terminationBLEFlush(serialHandle);
+    }
+    else {
+        //TERMINATE CONNECTION
+        printf(" ... terminating BLE connection\n");
+        terminateBLEConnection(serialHandle,0);
+    }
     //Close COM
     printf(" ... closing serial connection\n");
     CloseHandle(serialHandle);
@@ -457,7 +502,6 @@ unsigned char testGetTEService () {
     char macAddrStr[]="C9:7D:B4:81:D5:05";
     char serialStr[]="\\\\.\\COM10";
     HANDLE serialHandle;
-    unsigned char teCmdStatus;
     unsigned short serviceATTHandle;
     unsigned short teATTHandle;
 
@@ -530,12 +574,108 @@ unsigned char testGetTEService () {
     printf(" ... closing serial connection\n");
     CloseHandle(serialHandle);
 
-    return (teCmdStatus);
+    return (0);
 }
+
+unsigned char testDiscAllCharDescs() {
+    //DVT2
+    //unsigned char macAddr[]={0x4A,0xE8,0x6F,0x6F,0x80,0xF4};
+    //char macAddrStr[]="F4:80:6F:6F:E8:4A";
+    //DVT3c
+    unsigned char macAddr[]={0x26,0xFD,0x85,0x76,0x8A,0xE2};
+    char macAddrStr[]="E2:8A:76:85:FD:26";
+    char serialStr[]="\\\\.\\COM9";
+    HANDLE serialHandle;
+    unsigned short serviceATTHandle;
+    unsigned short charTEHandle;
+
+    //SERIAL OPEN
+    //TODO string length check
+    printf(" ... opening serial connection to TI BLE on port=%s\n",serialStr);
+    serialHandle=openSerial(serialStr);
+    if (!serialHandle) {
+        fprintf(stderr,"ERROR: BLE not able to open serial on port=%s\n",serialStr);
+        printf("HINT: Check on which COM port of computer is TI CC2540 USB Bluetooth Dongle connected? Or isn't COM port occupied by other process?\n");
+        return (1);
+    }
+    printf(" Serial connection opened.\n");
+
+    //RESET HCI (controller, link manager, baseband, link layer)
+    printf(" ... reseting HCI controller, link\n");
+    if (resetHci(serialHandle)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: Reseting HCI controller, link failed.\n");
+        printf("HINT: Try to reconnect TI CC2540 Bluetooth out and back in to USB port.\n");
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" HCI reset successful.\n");
+
+    //INITIALIZE Texas CC2540EMK-USB
+    printf(" ... initializing Bluetooth Texas Instruments CC2540EMK-USB Dongle\n");
+    if (initializeBleTICC2540(serialHandle)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: Not able to BLE initialize Texas Instruments CC2540 USB Bluetooth Dongle on port=%s\n",serialStr);
+        printf("HINT: Try to reconnect TI CC2540 Bluetooth out and back in to USB port.\n");
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" TI CC2540 initialization completed.\n");
+
+    //ESTABLISH CONNECTION
+    printf(" ... establishing connection to MAC address=%s \n",macAddrStr);
+    if (establishBLEConnection(serialHandle,macAddr,BD_ADDR_LEN)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: not able to establish link with MAC address=%s\n",macAddrStr);
+        printf("HINT: Double check MAC address. Is spider discoverable by other BLE device?\n");
+        printf(" ... terminating BLE connection\n");
+        terminateBLEConnection(serialHandle,1);
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" Connection established.\n");
+
+    //TE SERVICE DISCOVERY
+    printf(" ... discovering TE BLE service\n");
+    if (getTEService(serialHandle, &serviceATTHandle)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: not able to discovering TE BLE service with UUID=0x00,0x00,0x00,0xAD,0xBB,0xDA,0xBA,0xAB,0xE3,0x4D,0x00,0x6E,0x0A,0xE1,0xA6,0x10\n");
+        printf("HINT: Reset TE device. Repeat. Reconnect TI CC2540 USB Dongle.\n");
+        printf(" ... terminating BLE connection\n");
+        terminateBLEConnection(serialHandle,0);
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" TE BLE service found at handle=0x%04X\n",serviceATTHandle);
+
+    //TE CHARACTERISTICS DISCOVERY
+    printf(" ... discovering TE BLE characteristics\n");
+    if (getTECharDesc(serialHandle, &charTEHandle)!=HCI_SUCCESS) {
+        fprintf(stderr,"ERROR: while discovering all characteristic descriptions \n");
+        printf("HINT: Reset TE device. Repeat. Reconnect TI CC2540 USB Dongle.\n");
+        printf(" ... terminating BLE connection\n");
+        terminateBLEConnection(serialHandle,0);
+        printf(" ... closing serial connection\n");
+        CloseHandle(serialHandle);
+        return (1);
+    }
+    printf(" TE BLE characteristics found at handle=0x%04X\n",charTEHandle);
+
+    //TERMINATE CONNECTION
+    printf(" ... terminating BLE connection\n");
+    terminateBLEConnection(serialHandle,0);
+    //Close COM
+    printf(" ... closing serial connection\n");
+    CloseHandle(serialHandle);
+
+    return (0);
+}
+
 
 int main(int argc, char **argv) {
     return (main_PROD(argc,argv));
 
     //return ((int) testCheckHciEventPacketsStatuses());
     //return ((int) testGetTEService());
+    //return ((int) testDiscAllCharDescs());
 }

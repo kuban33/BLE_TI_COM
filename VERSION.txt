@@ -4,6 +4,14 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 10 : SARA 20201119
+- TE introduces new characteristics 3b:21:a8:25:85:20:75:95:97:4b:09:64:eb:2a:83:c1
+  however Primary GATT service remains the same
+- handle for TE commands communication now taken from ATT_WriteReq response
+- TE changes TE commands, removal of header byte 0x02
+- BLE supervision timeout decreased from 20s to 1s because TE commands CHARGE, XCHARGE automatically disconnects
+- char desc must be scanned all time (slow!)
+
 beta 09 : SARA 20200630
 - added TE commands SOURCEADC, SOURCEFM - source selection ADC (Line-In), FM
 
