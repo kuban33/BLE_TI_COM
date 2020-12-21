@@ -99,6 +99,15 @@ const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TESRCFM_packet_default={
     {0x07,0x51,0x0c,0x4d,0x01,0xad,0x8b,0x00} //uint8 value[8];
 };
 
+const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEBLEX_packet_default={
+    HCI_PACKETTYPE_COMMAND, //uint8 type;
+    GATT_WRITENORESPONSE, //uint16 opCode;
+    0x0C, //uint8 dataLength;
+    0x0000, //uint16 connHandle;
+    TE_GATT_HANDLE, //uint16 handle;
+    {0x07,0x51,0x12,0x6a,0x01,0x44,0x9c,0x00} //uint8 value[8];
+};
+
 const gattWriteNoRsp_TE11_packet gattWriteNoRsp_TEFACENA_packet_default={
     HCI_PACKETTYPE_COMMAND, //uint8 type;
     GATT_WRITENORESPONSE, //uint16 opCode;
@@ -106,6 +115,18 @@ const gattWriteNoRsp_TE11_packet gattWriteNoRsp_TEFACENA_packet_default={
     0x0000, //uint16 connHandle;
     TE_GATT_HANDLE, //uint16 handle;
     {0x0a,0x51,0x08,0x07,0x04,0xca,0xfe,0xba,0xbe,0xb7,0x00} //uint8 value[11];
+};
+
+const hciLeExtEvent_TE7_attHndlValNotif_packet hciLeExtEvent_TEPING_attHndlValNotif_packet_default={
+    HCI_PACKETTYPE_EVENT, //uint8 type;
+    HCI_LE_EVENT_EXTEVENT, //uint8 eventCode;
+    0x0F, //uint8 dataLength;
+    ATT_HANDLEVALUENOTIFICATION, //uint16 event;
+    HCI_SUCCESS, //uint8 status;
+    0x0000, //uint16 connHandle;
+    0x09, //uint8 pduLen;
+    TE_GATT_HANDLE, //uint16 handle;
+    {0x04,0x15,0x00,0x02,0x02,0x00,0x00} //uint8 value[0x10];
 };
 
 const hciLeExtEvent_TE_attFindInfoRsp_packet hciLeExtEvent_TE_attFindInfoRsp_packet_default={
@@ -120,6 +141,58 @@ const hciLeExtEvent_TE_attFindInfoRsp_packet hciLeExtEvent_TE_attFindInfoRsp_pac
     0x0000, //uint16 handle; //handle unknown to detect
     {0x3b,0x21,0xa8,0x25,0x85,0x20,0x75,0x95,0x97,0x4b,0x09,0x64,0xeb,0x2a,0x83,0xc1} //uint8 value[0x10];
 };
+
+unsigned char compareTEPING(const unsigned char * packet, const unsigned char packetLen) {
+    hciLeExtEvent_TE7_attHndlValNotif_packet pckVerify=hciLeExtEvent_TEPING_attHndlValNotif_packet_default;
+    hciLeExtEvent_TE7_attHndlValNotif_packet * ptrPacket=(hciLeExtEvent_TE7_attHndlValNotif_packet *) packet;
+
+    if (sizeof(pckVerify)!=packetLen) return (0);
+
+    //seq
+    pckVerify.value[2]=ptrPacket->value[2];
+    //crc8
+    pckVerify.value[5]=ptrPacket->value[5];
+    if (memcmp(&pckVerify,ptrPacket,packetLen)==0) return (1);
+    else return (0);
+}
+
+unsigned char testTEpacket(const unsigned char * packet, const unsigned char packetLen, unsigned char (* funcCompare)(const unsigned char *,const unsigned char)) {
+    return (*funcCompare)(packet,packetLen);
+}
+
+unsigned char confirmDefaultHandleViaTEPING(HANDLE serialHandle) {
+    unsigned char * buffer;
+    unsigned long bufferLen;
+    unsigned char * eventStatuses;
+    unsigned char eventStatusesNum;
+    unsigned char overallCmdStatus=HCI_SUCCESS;
+    unsigned char ** readHciPackets=NULL;
+    unsigned char readHciPacketsLen;
+    unsigned char result=0;
+    gattWriteNoRsp_TE7_packet pckTEPING=gattWriteNoRsp_TEPING_packet_default;;
+
+    printHciPackets((unsigned char *) &pckTEPING,sizeof(pckTEPING));
+    writeUart(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING));
+    Sleep(DELAY_TE_COMMAND);
+    readUart(serialHandle,&buffer,&bufferLen);
+    overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
+    if (overallCmdStatus == HCI_SUCCESS) {
+        if (bufhcitokenize(buffer, bufferLen, &readHciPackets, &readHciPacketsLen)) {
+            if (readHciPacketsLen==2) {
+                if (testTEpacket(readHciPackets[1],buffer+bufferLen-readHciPackets[1],compareTEPING)) {
+                    result=1;
+                }
+            }
+        }
+    }
+    printHciPackets(buffer,bufferLen);
+
+    free(readHciPackets);
+    free(eventStatuses);
+    free(buffer);
+
+    return (result);
+}
 
 unsigned char getTEService(HANDLE serialHandle, unsigned short * handle) {
     unsigned char * buffer;

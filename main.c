@@ -7,7 +7,7 @@
 #include "ble.h"
 #include "te.h"
 
-#define VERSION "beta 09"
+#define VERSION "beta 11"
 
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
@@ -27,7 +27,7 @@ void printHelp(char *arg0) {
     printf("Tool for TE Spider control using Texas Instruments CC2540EMK-USB Dongle\n");
     printf("------------------\n");
     printf("What's up Buddy?\nUsage:\n");
-    printf("   %s COM_PORT BLE_MAC_ADRESS COMMAND1 [COMMAND2 [COMMAND3]]\n",arg0);
+    printf("   %s COM_PORT BLE_MAC_ADRESS COMMAND1 [COMMAND2 [COMMAND3 [COMMAND4]]]\n",arg0);
     printf("   %s --help\n",arg0);
     printf("   %s --version\n",arg0);
     printf("Commands:\n");
@@ -42,7 +42,8 @@ void printHelp(char *arg0) {
     printf("   CHARGEX (*) - Disables charging mode\n");
     printf("   SOURCEADC (*) - Selects Line-In source\n");
     printf("   SOURCEFM (*) - Selects Radio source\n");
-    printf("   RESET - included (FACTORYENABLE,VOLMAX,BOTH,CHARGEX,FACTORYDISABLE)\n");
+    printf("   BLEX (*) - Disables audio bluetooth\n");
+    printf("   RESET - included (FACTORYENABLE,VOLMAX,BOTH,CHARGEX)\n");
     printf("Notes:\n");
     printf("   Commands marked with (*) requires factory mode enabled - FACTORYENABLE\n");
     printf("Examples:\n");
@@ -146,28 +147,6 @@ unsigned char establishBLEConnection(HANDLE serialHandle, const unsigned char * 
     return (overallCmdStatus);
 }
 
-unsigned char discoverBLEAllCharDescs(HANDLE serialHandle) {
-    unsigned char * buffer;
-    unsigned long bufferLen;
-    unsigned char * eventStatuses;
-    unsigned char eventStatusesNum;
-    unsigned char overallCmdStatus=0x00;
-    gattDiscAllChars_packet pckAllDesc = gattDiscAllCharDescs_packet_default;
-
-    printHciPackets((unsigned char *) &pckAllDesc,sizeof(pckAllDesc));
-    writeUart(serialHandle, &pckAllDesc, sizeof(pckAllDesc));
-    //TODO analyze
-    Sleep(2500);
-    readUart(serialHandle,&buffer,&bufferLen);
-    overallCmdStatus|=checkHciEventPacketsStatuses(buffer,bufferLen,&eventStatuses,&eventStatusesNum);
-    printHciPackets(buffer,bufferLen);
-
-    free(eventStatuses);
-    free(buffer);
-
-    return (overallCmdStatus);
-}
-
 unsigned char terminateBLEConnection(HANDLE serialHandle, unsigned char force) {
     unsigned char * buffer;
     unsigned long bufferLen;
@@ -233,6 +212,7 @@ int main_PROD(int argc, char **argv) {
     gattWriteNoRsp_TE8_packet pckTECHARGDIS=gattWriteNoRsp_TECHARGDIS_packet_default;
     gattWriteNoRsp_TE8_packet pckTESRCADC=gattWriteNoRsp_TESRCADC_packet_default;
     gattWriteNoRsp_TE8_packet pckTESRCFM=gattWriteNoRsp_TESRCFM_packet_default;
+    gattWriteNoRsp_TE8_packet pckTEBLEX=gattWriteNoRsp_TEBLEX_packet_default;
 
     if (argc==2 && strcmp(argv[1],"--help")==0) {
         printHelp(argv[0]);
@@ -242,7 +222,7 @@ int main_PROD(int argc, char **argv) {
         printVersion(argv[0]);
         return (0);
     }
-    if (argc<4 || argc>6) {
+    if (argc<4 || argc>7) {
         printTryHelp(argv[0]);
         return (1);
     }
@@ -324,19 +304,6 @@ int main_PROD(int argc, char **argv) {
     }
     printf(" TE BLE service found at handle=0x%04X\n",serviceATTHandle);
 
-    //TE CHARACTERISTICS DISCOVERY
-    printf(" ... discovering TE BLE characteristics\n");
-    if (getTECharDesc(serialHandle, &charTEHandle)!=HCI_SUCCESS) {
-        fprintf(stderr,"ERROR: not able to discover TE BLE characteristics with UUID=0x3B,0x21,0xA8,0x25,0x85,0x20,0x75,0x95,0x97,0x4B,0x09,0x64,0xEB,0x2A,0x83,0xC1\n");
-        printf("HINT: Possible wrong piece.\n");
-        printf(" ... terminating BLE connection\n");
-        terminateBLEConnection(serialHandle,0);
-        printf(" ... closing serial connection\n");
-        CloseHandle(serialHandle);
-        return (1);
-    }
-    printf(" TE BLE characteristics found at handle=0x%04X\n",charTEHandle);
-
     //TE SERVICE CONFIGURATION
     printf(" ... configuring TE BLE service\n");
     if (configureTECharacteristics(serialHandle,serviceATTHandle)!=HCI_SUCCESS) {
@@ -347,6 +314,27 @@ int main_PROD(int argc, char **argv) {
         printf(" ... closing serial connection\n");
         CloseHandle(serialHandle);
         return (1);
+    }
+
+    //TE CONFIRM DEFAULT HANDLE
+    printf(" ... confirming TE BLE default characteristics handle\n");
+    if (confirmDefaultHandleViaTEPING(serialHandle)) {
+        charTEHandle=TE_GATT_HANDLE;
+        printf(" TE BLE default characteristics handle=0x%04X CONFIRMED\n",charTEHandle);
+    }
+    else {
+        //TE CHARACTERISTICS DISCOVERY
+        printf(" ... discovering TE BLE characteristics\n");
+        if (getTECharDesc(serialHandle, &charTEHandle)!=HCI_SUCCESS) {
+            fprintf(stderr,"ERROR: not able to discover TE BLE characteristics with UUID=0x3B,0x21,0xA8,0x25,0x85,0x20,0x75,0x95,0x97,0x4B,0x09,0x64,0xEB,0x2A,0x83,0xC1\n");
+            printf("HINT: Possible wrong piece.\n");
+            printf(" ... terminating BLE connection\n");
+            terminateBLEConnection(serialHandle,0);
+            printf(" ... closing serial connection\n");
+            CloseHandle(serialHandle);
+            return (1);
+        }
+        printf(" TE BLE characteristics found at handle=0x%04X\n",charTEHandle);
     }
 
     //TE COMMANDS section
@@ -396,6 +384,10 @@ int main_PROD(int argc, char **argv) {
         }
         else if (strcmp(argv[i],"SOURCEFM")==0) {
             teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),charTEHandle);
+            teCmdProcessed=1;
+        }
+        else if (strcmp(argv[i],"BLEX")==0) {
+            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEBLEX,sizeof(pckTEBLEX),charTEHandle);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"RESET")==0) {
@@ -671,6 +663,20 @@ unsigned char testDiscAllCharDescs() {
     return (0);
 }
 
+unsigned char testTEcompare() {
+    unsigned char testPacket[18]={0x04,0xFF,0x0F,0x1B,0x05,0x00,0x00,0x00,0x09,0x1D,0x00,0x04,0x15,0x5C,0x02,0x02,0x5A,0x00};
+    unsigned char testPacket2[19]={0x04,0xFF,0x0F,0x1B,0x05,0x00,0x00,0x00,0x09,0x1D,0x00,0x07,0x15,0x1f,0x08,0x01,0x03,0x3f,0x00};
+    unsigned char testPacket3[18]={0x04,0xFF,0x0F,0x1B,0x05,0x00,0x00,0x00,0x09,0x1D,0x00,0x07,0x51,0x0b,0x46,0x00,0x24,0x00};
+
+    if (testTEpacket(testPacket,18,compareTEPING)) printf("TEST OK\n");
+    else printf("TEST KO\n");
+    if (testTEpacket(testPacket2,19,compareTEPING)) printf("TEST KO\n");
+    else printf("TEST OK\n");
+    if (testTEpacket(testPacket3,18,compareTEPING)) printf("TEST KO\n");
+    else printf("TEST OK\n");
+
+    return (0);
+}
 
 int main(int argc, char **argv) {
     return (main_PROD(argc,argv));
@@ -678,4 +684,5 @@ int main(int argc, char **argv) {
     //return ((int) testCheckHciEventPacketsStatuses());
     //return ((int) testGetTEService());
     //return ((int) testDiscAllCharDescs());
+    //return ((int) testTEcompare());
 }

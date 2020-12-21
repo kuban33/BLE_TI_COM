@@ -45,6 +45,7 @@ extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TECHARGENA_packet_default;
 extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TECHARGDIS_packet_default;
 extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TESRCADC_packet_default;
 extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TESRCFM_packet_default;
+extern const gattWriteNoRsp_TE8_packet gattWriteNoRsp_TEBLEX_packet_default;
 
 typedef struct {
     uint8 type;
@@ -55,6 +56,19 @@ typedef struct {
     uint8 value[11];
 } gattWriteNoRsp_TE11_packet;
 extern const gattWriteNoRsp_TE11_packet gattWriteNoRsp_TEFACENA_packet_default;
+
+typedef struct {
+    uint8 type;
+    uint8 eventCode;
+    uint8 dataLength;
+    uint16 event;
+    uint8 status;
+    uint16 connHandle;
+    uint8 pduLen;
+    uint16 handle;
+    uint8 value[7];
+} hciLeExtEvent_TE7_attHndlValNotif_packet;
+extern const hciLeExtEvent_TE7_attHndlValNotif_packet hciLeExtEvent_TEPING_attHndlValNotif_packet_default;
 
 //packet with handle for Teenage 128-bit UUID
 typedef struct {
@@ -71,6 +85,9 @@ typedef struct {
 } hciLeExtEvent_TE_attFindInfoRsp_packet;
 extern const hciLeExtEvent_TE_attFindInfoRsp_packet hciLeExtEvent_TE_attFindInfoRsp_packet_default;
 
+extern unsigned char compareTEPING(const unsigned char * packet, const unsigned char packetLen);
+extern unsigned char testTEpacket(const unsigned char * packet, const unsigned char packetLen, unsigned char (* funcCompare)(const unsigned char *,const unsigned char));
+extern unsigned char confirmDefaultHandleViaTEPING(HANDLE serialHandle);
 extern unsigned char getTEService(HANDLE serialHandle, unsigned short * handle);
 extern unsigned char getTECharDesc(HANDLE serialHandle, unsigned short * handle);
 extern unsigned char configureTECharacteristics(HANDLE serialHandle, unsigned short serviceHandle);

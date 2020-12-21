@@ -4,6 +4,12 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 11 : SARA 20201217
+- BLEX TE command added (disables BLE audio) probably will not be used
+- 4 commands allowed at once
+- added TE ping verify command on known handle (speed up: not to scan all char desc)
+- cleanup, refactoring
+
 beta 10 : SARA 20201119
 - TE introduces new characteristics 3b:21:a8:25:85:20:75:95:97:4b:09:64:eb:2a:83:c1
   however Primary GATT service remains the same
