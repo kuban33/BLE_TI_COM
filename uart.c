@@ -41,19 +41,20 @@ HANDLE openSerial(const char *port) {
 
     // Set timeouts
     COMMTIMEOUTS timeout = { 0 };
-
+    /*
     timeout.ReadIntervalTimeout = 50;
     timeout.ReadTotalTimeoutConstant = 50;
     timeout.ReadTotalTimeoutMultiplier = 50;
     timeout.WriteTotalTimeoutConstant = 50;
     timeout.WriteTotalTimeoutMultiplier = 10;
-    /*
+    */
+
     timeout.ReadIntervalTimeout = 10;
     timeout.ReadTotalTimeoutConstant = 10;
-    timeout.ReadTotalTimeoutMultiplier = 10;
+    timeout.ReadTotalTimeoutMultiplier = 5;
     timeout.WriteTotalTimeoutConstant = 10;
     timeout.WriteTotalTimeoutMultiplier = 5;
-    */
+
     if (!SetCommTimeouts(serialHandle, &timeout)) {
         fprintf(stderr,"Error SetCommTimeouts:%p\n",&timeout);
         CloseHandle(serialHandle);

@@ -7,7 +7,7 @@
 #include "ble.h"
 #include "te.h"
 
-#define VERSION "beta 11"
+#define VERSION "beta 12"
 
 #define STR_LEN_MAX 0xFF
 #define DELAY_ESTABLISH 500
@@ -30,7 +30,11 @@ void printHelp(char *arg0) {
     printf("   %s COM_PORT BLE_MAC_ADRESS COMMAND1 [COMMAND2 [COMMAND3 [COMMAND4]]]\n",arg0);
     printf("   %s --help\n",arg0);
     printf("   %s --version\n",arg0);
-    printf("Commands:\n");
+    printf("COM port COM_PORT:\n");
+    printf("   Win device COM port name (see examples below)\n");
+    printf("BLE MAC address BLE_MAC_ADRESS:\n");
+    printf("   6-hex byte address separated by whatever character (see examples below)\n");
+    printf("Commands COMMANDx:\n");
     printf("   FACTORYENABLE - Puts spider into factory mode\n");
     printf("   FACTORYDISABLE - Puts spider out of factory mode\n");
     printf("   PING - Pings spider and confirms response\n");
@@ -42,10 +46,11 @@ void printHelp(char *arg0) {
     printf("   CHARGEX (*) - Disables charging mode\n");
     printf("   SOURCEADC (*) - Selects Line-In source\n");
     printf("   SOURCEFM (*) - Selects Radio source\n");
-    printf("   BLEX (*) - Disables audio bluetooth\n");
-    printf("   RESET - included (FACTORYENABLE,VOLMAX,BOTH,CHARGEX)\n");
+    printf("   BLEX (*^) - Disables audio bluetooth\n");
+    printf("   RESET (^) - included (FACTORYENABLE,CHARGEX,FACTORYDISABLE)\n");
     printf("Notes:\n");
     printf("   Commands marked with (*) requires factory mode enabled - FACTORYENABLE\n");
+    printf("   Commands marked with (^) are directly sent without TE response check\n");
     printf("Examples:\n");
     printf("   %s COM10 E2:17:4D:B8:E0:EE FACTORYENABLE VOLMAX LEFT\n",arg0);
     printf("   %s COM10 E2:17:4D:B8:E0:EE BOTH\n",arg0);
@@ -198,7 +203,8 @@ int main_PROD(int argc, char **argv) {
     unsigned char teCmdProcessed=0;
     unsigned char teCmdStatus;
     unsigned short serviceATTHandle;
-    unsigned short charTEHandle;
+    //default TE handle set first trial to PING, sedond will detect
+    unsigned short charTEHandle=TE_GATT_HANDLE;
     unsigned char teDisconnectInitiated=0;
 
     gattWriteNoRsp_TE7_packet pckTEPING=gattWriteNoRsp_TEPING_packet_default;
@@ -231,7 +237,7 @@ int main_PROD(int argc, char **argv) {
 
     //reference length = mac add length * 2chars + delimiters in between
     if (strlen(pMacAddrStr) != MAC_STR_WDELIM) {
-        fprintf(stderr,"ERROR: wrong length=%lu of macAddrStr=%s\n",strlen(pMacAddrStr),pMacAddrStr);
+        fprintf(stderr,"ERROR: wrong length=%I64u of macAddrStr=%s\n",strlen(pMacAddrStr),pMacAddrStr);
         printf("HINT: Double check entered bluetooth address? Is it in delimited format e.g.: E2:17:4D:B8:E0:EE\n");
         return (1);
     }
@@ -319,10 +325,10 @@ int main_PROD(int argc, char **argv) {
     //TE CONFIRM DEFAULT HANDLE
     printf(" ... confirming TE BLE default characteristics handle\n");
     if (confirmDefaultHandleViaTEPING(serialHandle)) {
-        charTEHandle=TE_GATT_HANDLE;
         printf(" TE BLE default characteristics handle=0x%04X CONFIRMED\n",charTEHandle);
     }
     else {
+        printf(" TE BLE default characteristics handle=0x%04X NOT CONFIRMED\n",charTEHandle);
         //TE CHARACTERISTICS DISCOVERY
         printf(" ... discovering TE BLE characteristics\n");
         if (getTECharDesc(serialHandle, &charTEHandle)!=HCI_SUCCESS) {
@@ -341,49 +347,49 @@ int main_PROD(int argc, char **argv) {
     for (i=3;i!=argc;i++) {
         printf("TE command=%s\n",argv[i]);
         if (strcmp(argv[i],"FACTORYENABLE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),charTEHandle,compareTEFACENA);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"FACTORYDISABLE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),charTEHandle,compareTEFACDIS);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"PING")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTEPING,sizeof(pckTEPING),charTEHandle,compareTEPING);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"VOLMAX")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),charTEHandle,compareTEVOLMAX);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"LEFT")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTELEFTENA,sizeof(pckTELEFTENA),charTEHandle,compareTELEFTENA);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"RIGHT")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTERIGHTENA,sizeof(pckTERIGHTENA),charTEHandle,compareTERIGHTENA);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"BOTH")==0){
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),charTEHandle,compareTEBOTHENA);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"CHARGE")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTECHARGENA,sizeof(pckTECHARGENA),charTEHandle,compareTECHARGENA);
             teCmdProcessed=1;
             teDisconnectInitiated=1;
         }
         else if (strcmp(argv[i],"CHARGEX")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),charTEHandle,compareTECHARGDIS);
             teCmdProcessed=1;
             teDisconnectInitiated=1;
         }
         else if (strcmp(argv[i],"SOURCEADC")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCADC,sizeof(pckTESRCADC),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTESRCADC,sizeof(pckTESRCADC),charTEHandle,compareTESRCADC);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"SOURCEFM")==0) {
-            teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),charTEHandle);
+            teCmdStatus=processntestTECommand(serialHandle,(unsigned char *) &pckTESRCFM,sizeof(pckTESRCFM),charTEHandle,compareTESRCFM);
             teCmdProcessed=1;
         }
         else if (strcmp(argv[i],"BLEX")==0) {
@@ -393,11 +399,11 @@ int main_PROD(int argc, char **argv) {
         else if (strcmp(argv[i],"RESET")==0) {
             //bitwise OR in order to group cmd results
             teCmdStatus=processTECommand(serialHandle,(unsigned char *) &pckTEFACENA,sizeof(pckTEFACENA),charTEHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEVOLMAX,sizeof(pckTEVOLMAX),charTEHandle);
-            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEBOTHENA,sizeof(pckTEBOTHENA),charTEHandle);
             teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTECHARGDIS,sizeof(pckTECHARGDIS),charTEHandle);
+            teCmdStatus|=processTECommand(serialHandle,(unsigned char *) &pckTEFACDIS,sizeof(pckTEFACDIS),charTEHandle);
             teCmdProcessed=1;
-            teDisconnectInitiated=1;
+            //teDisconnectInitiated=1;
+            //not fully correct but what to do when there is TE bug on CHARGEX cmd
         }
         else {
             fprintf(stderr,"ERROR: UNKNOWN TE command=%s\n",argv[i]);
@@ -419,7 +425,7 @@ int main_PROD(int argc, char **argv) {
         }
     }
 
-    if (teDisconnectInitiated) {
+    if (teDisconnectInitiated && teCmdStatus==HCI_SUCCESS) {
         //TE TEMINATION INITIATED
         printf(" ... BLE connection was terminated by TE\n");
         terminationBLEFlush(serialHandle);

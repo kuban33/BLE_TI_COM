@@ -4,6 +4,16 @@ TE_SPIDER_TIBLE_TOOL
 
 CHANGELOG:
 ----------
+beta 12 : SARA 20210106
+- created TE compare function prototypes for TE commands
+- TE BUG: reply to CHARGEX cmd is same when ok or ko (in or not in FACTORYMODE)
+- TE BUG: reply to BLEX cmd is very late 6s - so no check
+- TE BUG: reply to SOURCEADC is same as to SOURCEFM
+- TE BUG: reply to FACTORYDISABLE differs, supports both 0x04 or 0x0B statuses
+- RESET cmd reorganized now contains: FACTORYENABLE, CHARGEX, FACTORYDISABLE. Even no sense but addresses major scenarios
+- UART timeouts reconfigured (dependency on UART buffer size !!!)
+- help revised
+
 beta 11 : SARA 20201217
 - BLEX TE command added (disables BLE audio) probably will not be used
 - 4 commands allowed at once

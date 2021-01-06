@@ -70,7 +70,7 @@
 	<ctype.h>
 	<string.h>
 
-1608548888 source:c:\_c_projects\ble_ti_com\main.c
+1609918556 source:c:\_c_projects\ble_ti_com\main.c
 	<stdio.h>
 	<stdlib.h>
 	<stddef.h>
@@ -80,23 +80,23 @@
 	"ble.h"
 	"te.h"
 
-1605786866 source:c:\_c_projects\ble_ti_com\uart.c
+1609920064 source:c:\_c_projects\ble_ti_com\uart.c
 	"uart.h"
 	<stdlib.h>
 	<stdio.h>
 	<ctype.h>
 	<string.h>
 
-1605872827 c:\_c_projects\ble_ti_com\uart.h
+1609923090 c:\_c_projects\ble_ti_com\uart.h
 	<windows.h>
 
-1608547459 source:c:\_c_projects\ble_ti_com\te.c
+1609917941 source:c:\_c_projects\ble_ti_com\te.c
 	"te.h"
 	"uart.h"
 	<stdio.h>
 	<stddef.h>
 
-1608549029 c:\_c_projects\ble_ti_com\te.h
+1609918145 c:\_c_projects\ble_ti_com\te.h
 	"ble.h"
 	"uart.h"
 

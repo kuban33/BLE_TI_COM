@@ -9,7 +9,7 @@
 
 #include <windows.h>
 
-#define RX_BUFFER_MAX 0xFFFF
+#define RX_BUFFER_MAX 0x400
 
 extern HANDLE openSerial(const char *port);
 extern unsigned char * readUart(HANDLE serialHandle, unsigned char ** bytes, unsigned long * bytesRead);
